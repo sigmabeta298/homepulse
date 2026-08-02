@@ -35,3 +35,18 @@ export const reading = sqliteTable('reading', {
 export type Device = typeof device.$inferSelect;
 export type Reading = typeof reading.$inferSelect;
 export type NewReading = typeof reading.$inferInsert;
+
+// Singleton row (id is always "default") holding app-wide preferences.
+// A real per-user settings table would need a user_id, but this is a
+// single-household dashboard, so one row is enough.
+export const settings = sqliteTable('settings', {
+	id: text('id').primaryKey().default('default'),
+	temperatureUnit: text('temperature_unit', { enum: ['C', 'F'] })
+		.notNull()
+		.default('C'),
+	refreshIntervalSeconds: integer('refresh_interval_seconds').notNull().default(60),
+	aqiThreshold: real('aqi_threshold').notNull().default(35),
+	tempHighThresholdC: real('temp_high_threshold_c').notNull().default(28)
+});
+
+export type Settings = typeof settings.$inferSelect;
