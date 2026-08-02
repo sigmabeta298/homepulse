@@ -1,37 +1,57 @@
+<script lang="ts">
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+
+	const latest = $derived(data.latest);
+
+	function fmt(value: number | null | undefined, unit: string, digits = 1) {
+		if (value === null || value === undefined) return '—';
+		return `${value.toFixed(digits)}${unit}`;
+	}
+
+	function timeAgo(date: Date | string | null | undefined) {
+		if (!date) return 'No data yet';
+		const d = new Date(date);
+		const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+		if (seconds < 60) return `${seconds}s ago`;
+		if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+		if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+		return `${Math.floor(seconds / 86400)}d ago`;
+	}
+</script>
+
 <div class="space-y-6">
-    <h1 class="text-3xl font-bold text-gray-800">Environmental Dashboard</h1>
-    <p class="text-gray-600">Welcome to the main dashboard for HomePulse. This section will display an overview of current readings (Temp, Humidity, AQI).</p>
+	<h1 class="text-3xl font-bold text-gray-800">Environmental Dashboard</h1>
+	<p class="text-gray-600">
+		{#if latest}
+			Showing the latest reading from <strong>{latest.deviceName}</strong>, {timeAgo(
+				latest.recordedAt
+			)}.
+		{:else}
+			No readings yet. Once your ESP32 starts posting to <code>/api/ingest</code>, live data will
+			show up here.
+		{/if}
+	</p>
 
-    <!-- Placeholder for primary widgets -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-xl shadow-lg border border-green-100">
-            <div class="text-sm font-medium text-green-600 uppercase tracking-wider">Temperature</div>
-            <p class="text-4xl font-bold mt-1">22.5°C</p>
-            <p class="text-sm text-gray-400 mt-2">Stable reading</p>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-lg border border-yellow-100">
-            <div class="text-sm font-medium text-yellow-600 uppercase tracking-wider">Humidity</div>
-            <p class="text-4xl font-bold mt-1">45%</p>
-            <p class="text-sm text-gray-400 mt-2">Normal range</p>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-lg border border-blue-100">
-            <div class="text-sm font-medium text-blue-600 uppercase tracking-wider">Air Quality (PM2.5)</div>
-            <p class="text-4xl font-bold mt-1">12 µg/m³</p>
-            <p class="text-sm text-gray-400 mt-2">Good Air Quality</p>
-        </div>
-    </div>
-
-    <div class="bg-white p-6 rounded-xl shadow-lg border">
-        <h2 class="text-xl font-semibold mb-4">Recent Activity Feed</h2>
-        <ul class="divide-y divide-gray-200">
-            <li class="py-3 flex justify-between items-center">
-                <span class="text-gray-700">Temperature reading updated.</span>
-                <span class="text-sm text-gray-500">5 minutes ago</span>
-            </li>
-            <li class="py-3 flex justify-between items-center">
-                <span class="text-gray-700">Humidity spiked slightly.</span>
-                <span class="text-sm text-gray-500">1 hour ago</span>
-            </li>
-        </ul>
-    </div>
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+		<div class="rounded-xl border border-green-100 bg-white p-6 shadow-lg">
+			<div class="text-sm font-medium tracking-wider text-green-600 uppercase">Temperature</div>
+			<p class="mt-1 text-4xl font-bold">{fmt(latest?.temperatureC, '°C')}</p>
+		</div>
+		<div class="rounded-xl border border-yellow-100 bg-white p-6 shadow-lg">
+			<div class="text-sm font-medium tracking-wider text-yellow-600 uppercase">Humidity</div>
+			<p class="mt-1 text-4xl font-bold">{fmt(latest?.humidityPct, '%')}</p>
+		</div>
+		<div class="rounded-xl border border-blue-100 bg-white p-6 shadow-lg">
+			<div class="text-sm font-medium tracking-wider text-blue-600 uppercase">
+				Air Quality (PM2.5)
+			</div>
+			<p class="mt-1 text-4xl font-bold">{fmt(latest?.pm25UgM3, ' µg/m³')}</p>
+		</div>
+		<div class="rounded-xl border border-purple-100 bg-white p-6 shadow-lg">
+			<div class="text-sm font-medium tracking-wider text-purple-600 uppercase">CO2</div>
+			<p class="mt-1 text-4xl font-bold">{fmt(latest?.co2Ppm, ' ppm', 0)}</p>
+		</div>
+	</div>
 </div>
