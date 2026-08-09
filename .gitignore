@@ -23,3 +23,8 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 # SQLite
 *.db
+
+# Firmware secrets
+firmware/config.py
+!firmware/config.py.example
+firmware/**/__pycache__

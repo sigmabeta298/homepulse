@@ -1,0 +1,48 @@
+# Copy this file to config.py and fill in real values.
+# config.py is gitignored - never commit real WiFi credentials or your API key.
+
+# --- WiFi ---
+WIFI_SSID = "your-wifi-name"
+WIFI_PASSWORD = "your-wifi-password"
+
+# --- HomePulse server ---
+# Local testing (same WiFi network as your dev machine):
+#   API_BASE_URL = "http://192.168.1.50:5173"   # your computer's LAN IP + dev port
+# Production (once deployed to Vercel):
+#   API_BASE_URL = "https://your-project.vercel.app"
+API_BASE_URL = "http://192.168.1.50:5173"
+
+# Must match INGEST_API_KEY in the web app's .env / Vercel env vars.
+INGEST_API_KEY = "change-me-to-match-your-server"
+
+# Identifies this physical board. The server auto-creates a device with
+# this slug on first reading. Keep this as "homepulse" - there's only one
+# physical device, per the project's design.
+DEVICE_SLUG = "homepulse"
+
+# --- Capture mode ---
+# "continuous": read + POST on a timer, forever, no button needed.
+#               Use this when the device is parked in one room.
+# "spot":       read + POST only when the button is pressed.
+#               Use this while walking the device room to room. Remember to
+#               arm the room on the Compare page (in the web app) BEFORE
+#               pressing the button, or the reading will land unassigned.
+MODE = "continuous"
+
+# Only used when MODE = "continuous". How often to take + send a reading.
+CONTINUOUS_INTERVAL_SECONDS = 300  # 5 minutes
+
+# --- Pins ---
+# Defaults below assume nothing's wired yet - change these to match your
+# actual breadboard layout. Avoid GPIO 0, 3, 26-32, 35-37, 45, 46 on the
+# ESP32-S3 N16R8 (strapping pins / reserved for flash & PSRAM).
+DHT22_PIN = 4
+
+PMS7003_UART_ID = 1
+PMS7003_TX_PIN = 17
+PMS7003_RX_PIN = 18
+
+# Only relevant in "spot" mode. Wire one leg of a push button here, the
+# other leg to GND. Internal pull-up is enabled in code, so no resistor
+# needed on the breadboard.
+CAPTURE_BUTTON_PIN = 5
