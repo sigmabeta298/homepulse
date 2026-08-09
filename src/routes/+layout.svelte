@@ -6,6 +6,7 @@
 
     const navigation = [
         { href: '/', label: 'Dashboard', icon: '▦' },
+        { href: '/compare', label: 'Compare Rooms', icon: '⇄' },
         { href: '/sensors', label: 'Sensors & Devices', icon: '◉' },
         { href: '/history', label: 'History', icon: '↗' },
         { href: '/settings', label: 'Settings', icon: '⚙' }

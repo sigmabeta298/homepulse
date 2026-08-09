@@ -16,7 +16,15 @@
 	const pm25Points = $derived(toPoints('pm25UgM3'));
 
 	function setRange(range: string) {
-		goto(`?range=${range}`, { keepFocus: true, noScroll: true });
+		const params = new URLSearchParams(window.location.search);
+		params.set('range', range);
+		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
+	}
+
+	function setRoom(e: Event) {
+		const params = new URLSearchParams(window.location.search);
+		params.set('room', (e.currentTarget as HTMLSelectElement).value);
+		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
 	}
 </script>
 
@@ -24,17 +32,31 @@
 	<h1 class="text-3xl font-bold text-gray-800">History & Trends</h1>
 	<p class="text-gray-600">Historical data across all monitored environmental parameters.</p>
 
-	<div class="flex gap-2">
-		{#each ['24h', '7d', '30d'] as r}
-			<button
-				class="rounded-lg border px-4 py-2 {data.range === r
-					? 'bg-indigo-600 text-white'
-					: 'bg-gray-100 hover:bg-gray-200'}"
-				onclick={() => setRange(r)}
+	<div class="flex flex-wrap items-center gap-4">
+		<div class="flex gap-2">
+			{#each ['24h', '7d', '30d'] as r}
+				<button
+					class="rounded-lg border px-4 py-2 {data.range === r
+						? 'bg-indigo-600 text-white'
+						: 'bg-gray-100 hover:bg-gray-200'}"
+					onclick={() => setRange(r)}
+				>
+					{r === '24h' ? 'Last 24 Hours' : r === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+				</button>
+			{/each}
+		</div>
+
+		{#if data.rooms.length > 0}
+			<select
+				class="rounded-lg border border-gray-300 p-2 text-sm"
+				value={data.roomId ?? ''}
+				onchange={setRoom}
 			>
-				{r === '24h' ? 'Last 24 Hours' : r === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
-			</button>
-		{/each}
+				{#each data.rooms as r (r.id)}
+					<option value={r.id}>{r.name}</option>
+				{/each}
+			</select>
+		{/if}
 	</div>
 
 	<div class="rounded-xl border border-blue-100 bg-white p-6 shadow-lg">
