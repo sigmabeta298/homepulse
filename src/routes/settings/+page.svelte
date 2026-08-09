@@ -152,7 +152,7 @@
 					</div>
 				</div>
 				<p class="mt-2 text-xs text-gray-400">
-					Not yet used anywhere in the UI — saved for when threshold-based alerts are added.
+					Breaches are highlighted on the Dashboard and Compare pages.
 				</p>
 			</div>
 		</div>
@@ -181,8 +181,19 @@
 		{:else}
 			<ul class="mb-4 space-y-2">
 				{#each data.rooms as r (r.id)}
-					<li class="flex items-center justify-between rounded-lg border bg-gray-50 p-2 text-sm">
-						<span>{r.name}</span>
+					<li class="flex items-center gap-2 rounded-lg border bg-gray-50 p-2 text-sm">
+						<form method="POST" action="?/renameRoom" use:enhance class="flex flex-1 items-center gap-2">
+							<input type="hidden" name="roomId" value={r.id} />
+							<input
+								type="text"
+								name="name"
+								value={r.name}
+								class="flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-indigo-500"
+							/>
+							<button type="submit" class="text-xs text-indigo-600 hover:text-indigo-800">
+								Save
+							</button>
+						</form>
 						<form method="POST" action="?/deleteRoom" use:enhance>
 							<input type="hidden" name="roomId" value={r.id} />
 							<button type="submit" class="text-xs text-red-500 hover:text-red-700"> Remove </button

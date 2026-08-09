@@ -22,6 +22,13 @@
 			minute: '2-digit'
 		});
 	}
+
+	function isTempBreach(temperatureC: number | null | undefined) {
+		return temperatureC != null && temperatureC > data.tempHighThresholdC;
+	}
+	function isAqiBreach(pm25UgM3: number | null | undefined) {
+		return pm25UgM3 != null && pm25UgM3 > data.aqiThreshold;
+	}
 </script>
 
 <div class="space-y-6">
@@ -133,10 +140,16 @@
 								<tr class="border-b last:border-0">
 									<td class="py-2 font-medium">{snap.room.name}</td>
 									{#if snap.reading}
-										<td class="py-2">{fmt(snap.reading.temperatureC, '°C')}</td>
+										<td class="py-2 {isTempBreach(snap.reading.temperatureC) ? 'font-semibold text-red-600' : ''}">
+											{fmt(snap.reading.temperatureC, '°C')}
+											{#if isTempBreach(snap.reading.temperatureC)}⚠{/if}
+										</td>
 										<td class="py-2">{fmt(snap.reading.humidityPct, '%')}</td>
 										<td class="py-2">{fmt(snap.reading.co2Ppm, ' ppm', 0)}</td>
-										<td class="py-2">{fmt(snap.reading.pm25UgM3, ' µg/m³')}</td>
+										<td class="py-2 {isAqiBreach(snap.reading.pm25UgM3) ? 'font-semibold text-red-600' : ''}">
+											{fmt(snap.reading.pm25UgM3, ' µg/m³')}
+											{#if isAqiBreach(snap.reading.pm25UgM3)}⚠{/if}
+										</td>
 										<td class="py-2 text-gray-400">{timeLabel(snap.reading.recordedAt)}</td>
 									{:else}
 										<td class="py-2 text-gray-300" colspan="5">Not measured this round</td>
@@ -148,5 +161,40 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if data.unassigned.length > 0}
+			<div class="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-lg">
+				<h2 class="mb-1 text-xl font-semibold text-amber-900">Unassigned Readings</h2>
+				<p class="mb-4 text-sm text-amber-700">
+					These readings arrived without an armed room (forgot to arm, or a double capture).
+					Tag them to a room, or leave them — they won't show up in any comparison until tagged.
+				</p>
+				<ul class="space-y-2">
+					{#each data.unassigned as u (u.id)}
+						<li class="flex flex-wrap items-center gap-3 rounded-lg border bg-white p-3 text-sm">
+							<span class="text-gray-500">{timeLabel(u.recordedAt)}</span>
+							<span>{fmt(u.temperatureC, '°C')}</span>
+							<span>{fmt(u.humidityPct, '%')}</span>
+							<span>{fmt(u.co2Ppm, ' ppm', 0)}</span>
+							<span>{fmt(u.pm25UgM3, ' µg/m³')}</span>
+							<form method="POST" action="?/assignRoom" use:enhance class="ml-auto flex gap-2">
+								<input type="hidden" name="readingId" value={u.id} />
+								<select name="roomId" class="rounded-lg border border-gray-300 p-1.5 text-sm">
+									{#each data.rooms as r (r.id)}
+										<option value={r.id}>{r.name}</option>
+									{/each}
+								</select>
+								<button
+									type="submit"
+									class="rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-900"
+								>
+									Assign
+								</button>
+							</form>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 	{/if}
 </div>

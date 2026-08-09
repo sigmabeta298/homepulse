@@ -1,7 +1,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { reading, room, round } from '$lib/server/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { getOrCreateSettings } from '$lib/server/settings';
 import { armRoomForSpotCheck, ArmError } from '$lib/server/arm';
@@ -41,12 +41,32 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	const pastRounds = await db.select().from(round).orderBy(desc(round.startedAt)).limit(20);
 
+	// Readings that arrived without an active arming (forgot to arm, double
+	// press, etc). Surfaced here so they can be tagged after the fact
+	// instead of silently vanishing from every page.
+	const unassigned = await db
+		.select({
+			id: reading.id,
+			temperatureC: reading.temperatureC,
+			humidityPct: reading.humidityPct,
+			co2Ppm: reading.co2Ppm,
+			pm25UgM3: reading.pm25UgM3,
+			recordedAt: reading.recordedAt
+		})
+		.from(reading)
+		.where(and(eq(reading.mode, 'spot'), isNull(reading.roomId)))
+		.orderBy(desc(reading.recordedAt))
+		.limit(20);
+
 	return {
 		mode: settingsRow.mode,
 		rooms,
 		targetRound,
 		roomSnapshots,
-		pastRounds
+		pastRounds,
+		unassigned,
+		aqiThreshold: settingsRow.aqiThreshold,
+		tempHighThresholdC: settingsRow.tempHighThresholdC
 	};
 };
 
@@ -65,5 +85,22 @@ export const actions: Actions = {
 			if (e instanceof ArmError) return fail(e.status, { error: e.message });
 			throw e;
 		}
+	},
+
+	assignRoom: async ({ request }) => {
+		const form = await request.formData();
+		const readingId = form.get('readingId');
+		const roomId = form.get('roomId');
+
+		if (typeof readingId !== 'string' || !readingId) {
+			return fail(400, { error: 'Missing reading id' });
+		}
+		if (typeof roomId !== 'string' || !roomId) {
+			return fail(400, { error: 'Pick a room to assign this reading to' });
+		}
+
+		await db.update(reading).set({ roomId }).where(eq(reading.id, readingId));
+
+		return { assigned: true };
 	}
 };

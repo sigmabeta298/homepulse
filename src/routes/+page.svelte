@@ -19,6 +19,11 @@
 		if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
 		return `${Math.floor(seconds / 86400)}d ago`;
 	}
+
+	const tempBreach = $derived(
+		latest?.temperatureC != null && latest.temperatureC > data.tempHighThresholdC
+	);
+	const aqiBreach = $derived(latest?.pm25UgM3 != null && latest.pm25UgM3 > data.aqiThreshold);
 </script>
 
 <div class="space-y-6">
@@ -49,19 +54,43 @@
 		</p>
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-			<div class="rounded-xl border border-green-100 bg-white p-6 shadow-lg">
-				<div class="text-sm font-medium tracking-wider text-green-600 uppercase">Temperature</div>
+			<div
+				class="rounded-xl border p-6 shadow-lg {tempBreach
+					? 'border-red-300 bg-red-50'
+					: 'border-green-100 bg-white'}"
+			>
+				<div
+					class="text-sm font-medium tracking-wider uppercase {tempBreach
+						? 'text-red-600'
+						: 'text-green-600'}"
+				>
+					Temperature {tempBreach ? '⚠' : ''}
+				</div>
 				<p class="mt-1 text-4xl font-bold">{fmt(latest?.temperatureC, '°C')}</p>
+				{#if tempBreach}
+					<p class="mt-1 text-xs text-red-500">Above your {data.tempHighThresholdC}°C alert threshold</p>
+				{/if}
 			</div>
 			<div class="rounded-xl border border-yellow-100 bg-white p-6 shadow-lg">
 				<div class="text-sm font-medium tracking-wider text-yellow-600 uppercase">Humidity</div>
 				<p class="mt-1 text-4xl font-bold">{fmt(latest?.humidityPct, '%')}</p>
 			</div>
-			<div class="rounded-xl border border-blue-100 bg-white p-6 shadow-lg">
-				<div class="text-sm font-medium tracking-wider text-blue-600 uppercase">
-					Air Quality (PM2.5)
+			<div
+				class="rounded-xl border p-6 shadow-lg {aqiBreach
+					? 'border-red-300 bg-red-50'
+					: 'border-blue-100 bg-white'}"
+			>
+				<div
+					class="text-sm font-medium tracking-wider uppercase {aqiBreach
+						? 'text-red-600'
+						: 'text-blue-600'}"
+				>
+					Air Quality (PM2.5) {aqiBreach ? '⚠' : ''}
 				</div>
 				<p class="mt-1 text-4xl font-bold">{fmt(latest?.pm25UgM3, ' µg/m³')}</p>
+				{#if aqiBreach}
+					<p class="mt-1 text-xs text-red-500">Above your {data.aqiThreshold} µg/m³ alert threshold</p>
+				{/if}
 			</div>
 			<div class="rounded-xl border border-purple-100 bg-white p-6 shadow-lg">
 				<div class="text-sm font-medium tracking-wider text-purple-600 uppercase">CO2</div>

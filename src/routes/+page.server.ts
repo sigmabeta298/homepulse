@@ -6,13 +6,17 @@ import { getOrCreateSettings } from '$lib/server/settings';
 
 export const load: PageServerLoad = async () => {
 	const settingsRow = await getOrCreateSettings();
+	const thresholds = {
+		aqiThreshold: settingsRow.aqiThreshold,
+		tempHighThresholdC: settingsRow.tempHighThresholdC
+	};
 
 	// The dashboard only really means something in continuous mode: "here's
 	// the latest reading for the room I'm parked in." In spot-check mode
 	// there's no single "current" room, so we just tell the page that and
 	// point the user to Compare instead.
 	if (settingsRow.mode !== 'continuous' || !settingsRow.continuousRoomId) {
-		return { mode: settingsRow.mode, latest: null, roomName: null };
+		return { mode: settingsRow.mode, latest: null, roomName: null, ...thresholds };
 	}
 
 	const [parkedRoom] = await db.select().from(room).where(eq(room.id, settingsRow.continuousRoomId));
@@ -33,5 +37,10 @@ export const load: PageServerLoad = async () => {
 		.orderBy(desc(reading.recordedAt))
 		.limit(1);
 
-	return { mode: settingsRow.mode, latest: latest ?? null, roomName: parkedRoom?.name ?? null };
+	return {
+		mode: settingsRow.mode,
+		latest: latest ?? null,
+		roomName: parkedRoom?.name ?? null,
+		...thresholds
+	};
 };

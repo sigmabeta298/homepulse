@@ -13,7 +13,24 @@
 		return `${Math.floor(seconds / 86400)}d ago`;
 	}
 
-	const onlineCount = $derived(data.devices.filter((d) => d.isOnline).length);
+	const statusLabel: Record<string, string> = {
+		online: '● Online',
+		offline: '○ Offline',
+		quiet: '○ Quiet',
+		stale: '⚠ No readings in a while'
+	};
+	const statusClass: Record<string, string> = {
+		online: 'text-green-600',
+		offline: 'text-gray-400',
+		quiet: 'text-gray-400',
+		stale: 'text-amber-600'
+	};
+
+	const summaryCount = $derived(
+		data.mode === 'continuous'
+			? data.devices.filter((d) => d.status === 'online').length
+			: data.devices.filter((d) => d.status === 'stale').length
+	);
 </script>
 
 <div class="space-y-6">
@@ -33,7 +50,14 @@
 			</p>
 		{:else}
 			<p class="mb-4 text-sm text-gray-600">
-				{onlineCount} of {data.devices.length} device{data.devices.length === 1 ? '' : 's'} online
+				{#if data.mode === 'continuous'}
+					{summaryCount} of {data.devices.length} device{data.devices.length === 1 ? '' : 's'} online
+				{:else}
+					In spot-check mode — devices only report when captured, so silence is normal.
+					{#if summaryCount > 0}
+						{summaryCount} device{summaryCount === 1 ? '' : 's'} hasn't reported in over a day.
+					{/if}
+				{/if}
 			</p>
 
 			<ul class="space-y-3">
@@ -44,11 +68,7 @@
 							<span class="ml-2 text-sm text-gray-400">({d.slug})</span>
 							<p class="text-xs text-gray-400">Last seen: {timeAgo(d.latest?.recordedAt)}</p>
 						</div>
-						{#if d.isOnline}
-							<span class="font-medium text-green-600">● Online</span>
-						{:else}
-							<span class="font-medium text-gray-400">○ Offline</span>
-						{/if}
+						<span class="font-medium {statusClass[d.status]}">{statusLabel[d.status]}</span>
 					</li>
 				{/each}
 			</ul>

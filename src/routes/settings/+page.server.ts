@@ -115,5 +115,25 @@ export const actions: Actions = {
 		await db.delete(room).where(eq(room.id, roomId));
 
 		return { roomDeleted: true };
+	},
+
+	renameRoom: async ({ request }) => {
+		const form = await request.formData();
+		const roomId = form.get('roomId');
+		const name = form.get('name');
+
+		if (typeof roomId !== 'string' || !roomId) {
+			return fail(400, { roomError: 'Missing room id' });
+		}
+		if (typeof name !== 'string' || !name.trim()) {
+			return fail(400, { roomError: 'Room name is required' });
+		}
+
+		// Slug is left as-is on rename — it's only used internally for
+		// add-time uniqueness, nothing else depends on it staying in sync
+		// with the display name.
+		await db.update(room).set({ name: name.trim() }).where(eq(room.id, roomId));
+
+		return { roomRenamed: true };
 	}
 };
