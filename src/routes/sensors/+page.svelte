@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	function timeAgo(date: Date | string | null | undefined) {
 		if (!date) return 'Never';
@@ -31,14 +32,30 @@
 			? data.devices.filter((d) => d.status === 'online').length
 			: data.devices.filter((d) => d.status === 'stale').length
 	);
+
+	function confirmDelete(e: SubmitEvent, deviceName: string, hasReadings: boolean) {
+		const message = hasReadings
+			? `Delete "${deviceName}"? This also permanently deletes all of its recorded readings/history. This can't be undone.`
+			: `Delete "${deviceName}"? This can't be undone.`;
+		if (!confirm(message)) {
+			e.preventDefault();
+		}
+	}
 </script>
 
 <div class="space-y-6">
 	<h1 class="text-3xl font-bold text-gray-800">Sensors & Devices Management</h1>
 	<p class="text-gray-600">
 		Devices are added automatically the first time they post a reading to <code>/api/ingest</code
-		>. There's nothing to configure here manually yet.
+		>. There's nothing to configure here manually yet — only one HomePulse unit is expected, so
+		anything else listed is likely leftover test data you can remove below.
 	</p>
+
+	{#if form?.deviceError}
+		<div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+			{form.deviceError}
+		</div>
+	{/if}
 
 	<div class="rounded-xl border border-green-100 bg-white p-6 shadow-lg">
 		<h2 class="mb-3 text-xl font-semibold">Device Status Overview</h2>
@@ -68,7 +85,21 @@
 							<span class="ml-2 text-sm text-gray-400">({d.slug})</span>
 							<p class="text-xs text-gray-400">Last seen: {timeAgo(d.latest?.recordedAt)}</p>
 						</div>
-						<span class="font-medium {statusClass[d.status]}">{statusLabel[d.status]}</span>
+						<div class="flex items-center gap-3">
+							<span class="font-medium {statusClass[d.status]}">{statusLabel[d.status]}</span>
+							<form
+								method="POST"
+								action="?/deleteDevice"
+								use:enhance
+								onsubmit={(e) => confirmDelete(e, d.name, d.latest !== null)}
+							>
+								<input type="hidden" name="deviceId" value={d.id} />
+								<input type="hidden" name="confirmed" value="true" />
+								<button type="submit" class="text-xs text-red-500 hover:text-red-700">
+									Remove
+								</button>
+							</form>
+						</div>
 					</li>
 				{/each}
 			</ul>

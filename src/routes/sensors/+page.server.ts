@@ -1,7 +1,8 @@
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { device, reading } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
+import { fail } from '@sveltejs/kit';
 import { getOrCreateSettings } from '$lib/server/settings';
 
 // Continuous mode: the device posts on a timer, so "no reading in the last
@@ -48,4 +49,31 @@ export const load: PageServerLoad = async () => {
 	);
 
 	return { mode: settingsRow.mode, devices: devicesWithStatus };
+};
+
+export const actions: Actions = {
+	// Deletes a device and any readings attributed to it. Unlike room
+	// deletion (which blocks if there's history, since rooms are meant to
+	// persist long-term), devices are meant to be disposable - a stray
+	// device from testing with a fake deviceSlug has no real value once
+	// you know which one is your actual hardware. The confirmation
+	// checkbox in the UI is the safeguard against deleting the wrong one
+	// by accident, not a block on deleting real history.
+	deleteDevice: async ({ request }) => {
+		const form = await request.formData();
+		const deviceId = form.get('deviceId');
+		const confirmed = form.get('confirmed');
+
+		if (typeof deviceId !== 'string' || !deviceId) {
+			return fail(400, { deviceError: 'Missing device id' });
+		}
+		if (confirmed !== 'true') {
+			return fail(400, { deviceError: 'Please confirm before deleting a device' });
+		}
+
+		await db.delete(reading).where(eq(reading.deviceId, deviceId));
+		await db.delete(device).where(eq(device.id, deviceId));
+
+		return { deviceDeleted: true };
+	}
 };

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './layout.css';
     import { page } from '$app/state';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
 
@@ -11,6 +12,18 @@
         { href: '/history', label: 'History', icon: '↗' },
         { href: '/settings', label: 'Settings', icon: '⚙' }
     ];
+
+	function isActive(href: string) {
+		return href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
+	}
+
+	onMount(() => {
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('/sw.js').catch((err) => {
+				console.warn('Service worker registration failed:', err);
+			});
+		}
+	});
 </script>
 
 <div class="min-h-screen bg-slate-50 text-slate-900">
@@ -26,11 +39,7 @@
             {#each navigation as item}
                 <a
                     href={item.href}
-                    class:active={
-						item.href === '/'
-							? page.url.pathname === '/'
-							: page.url.pathname.startsWith(item.href)
-					}
+                    class:active={isActive(item.href)}
                     class="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
                 >
                     <span class="flex h-6 w-6 items-center justify-center text-base">
@@ -62,15 +71,34 @@
             </div>
         </header>
 
-        <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <main class="mx-auto max-w-7xl p-4 pb-24 sm:p-6 lg:p-8 lg:pb-8">
             {@render children()}
         </main>
     </div>
+
+    <nav
+        class="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white/95 backdrop-blur lg:hidden"
+        style="padding-bottom: env(safe-area-inset-bottom);"
+    >
+        {#each navigation as item}
+            <a
+                href={item.href}
+                class:active-mobile={isActive(item.href)}
+                class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-slate-500"
+            >
+                <span class="flex h-6 w-6 items-center justify-center text-lg">{item.icon}</span>
+                {item.label.split(' ')[0]}
+            </a>
+        {/each}
+    </nav>
 </div>
 
 <style>
     a.active {
         background-color: rgb(241 245 249);
         color: rgb(15 23 42);
+    }
+    a.active-mobile {
+        color: rgb(79 70 229);
     }
 </style>
