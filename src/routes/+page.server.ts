@@ -8,7 +8,8 @@ export const load: PageServerLoad = async () => {
 	const settingsRow = await getOrCreateSettings();
 	const thresholds = {
 		aqiThreshold: settingsRow.aqiThreshold,
-		tempHighThresholdC: settingsRow.tempHighThresholdC
+		tempHighThresholdC: settingsRow.tempHighThresholdC,
+		refreshIntervalSeconds: settingsRow.refreshIntervalSeconds
 	};
 
 	// The dashboard only really means something in continuous mode: "here's

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -24,6 +26,19 @@
 		latest?.temperatureC != null && latest.temperatureC > data.tempHighThresholdC
 	);
 	const aqiBreach = $derived(latest?.pm25UgM3 != null && latest.pm25UgM3 > data.aqiThreshold);
+
+	// Re-runs this page's load function on a timer, using whatever interval
+	// is set in Settings. invalidateAll() re-fetches from the server rather
+	// than duplicating the query client-side, so this stays in sync with
+	// the exact same logic (mode-awareness, thresholds, etc.) as a manual
+	// page reload would give you.
+	onMount(() => {
+		const ms = Math.max(data.refreshIntervalSeconds, 10) * 1000;
+		const interval = setInterval(() => {
+			invalidateAll();
+		}, ms);
+		return () => clearInterval(interval);
+	});
 </script>
 
 <div class="space-y-6">
@@ -51,6 +66,9 @@
 				No readings yet for <strong>{data.roomName}</strong>. Once your ESP32 starts posting to
 				<code>/api/ingest</code>, live data will show up here.
 			{/if}
+			<span class="text-xs text-gray-400">
+				(auto-refreshing every {data.refreshIntervalSeconds}s)
+			</span>
 		</p>
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-3">

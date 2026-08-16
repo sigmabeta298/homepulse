@@ -1,6 +1,6 @@
 # HomePulse Firmware (MicroPython)
 
-Runs on the ESP32-S3. Reads a DHT22 (temp/humidity) and a PMS7003
+Runs on the ESP32-S3. Reads a DHT22 (temp/humidity) and a PMS5003
 (PM2.5/PM10), then POSTs readings to the HomePulse web app.
 
 ## Wiring
@@ -13,16 +13,16 @@ Default pin assignments (change in `config.py` if you wire it differently
 | DHT22              | VCC                  | 3V3                      |                                            |
 | DHT22              | GND                  | GND                      |                                            |
 | DHT22              | DATA                 | GPIO4                    | Check if your breakout has a built-in pull-up resistor; if not, add a 10k ohm resistor between DATA and VCC |
-| PMS7003            | VCC                  | 5V                       | **Needs 5V, not 3.3V** - use the board's `5V`/`VIN` pin |
-| PMS7003            | GND                  | GND                      |                                            |
-| PMS7003            | TX                   | GPIO18 (ESP32-S3 RX)     | Sensor TX -> board RX                     |
-| PMS7003            | RX                   | GPIO17 (ESP32-S3 TX)     | Sensor RX -> board TX                     |
+| PMS5003            | VCC                  | 5V                       | **Needs 5V, not 3.3V** - use the board's `5V`/`VIN` pin |
+| PMS5003            | GND                  | GND                      |                                            |
+| PMS5003            | TX                   | GPIO18 (ESP32-S3 RX)     | Sensor TX -> board RX                     |
+| PMS5003            | RX                   | GPIO17 (ESP32-S3 TX)     | Sensor RX -> board TX                     |
 | Capture button (spot mode only) | one leg | GPIO5   | Other leg to GND. No resistor needed - internal pull-up is enabled in code |
 
 Avoid GPIO 0, 3, 26-32, 35-37, 45, 46 on the N16R8 - these are strapping
 pins or reserved for the onboard flash/PSRAM.
 
-The PMS7003 fan takes about 30 seconds to spin up and give stable
+The PMS5003 fan takes about 30 seconds to spin up and give stable
 readings after power-on - the first reading or two may look off. That's
 normal.
 
@@ -64,7 +64,7 @@ mpremote connect <YOUR_PORT> fs cp main.py :main.py
 mpremote connect <YOUR_PORT> fs cp config.py :config.py
 mpremote connect <YOUR_PORT> fs mkdir :sensors
 mpremote connect <YOUR_PORT> fs cp sensors/dht22.py :sensors/dht22.py
-mpremote connect <YOUR_PORT> fs cp sensors/pms7003.py :sensors/pms7003.py
+mpremote connect <YOUR_PORT> fs cp sensors/pms5003.py :sensors/pms5003.py
 ```
 
 ### 4. Watch it run

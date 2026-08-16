@@ -34,11 +34,11 @@ except ImportError:
 
 dht22 = DHT22Sensor(config.DHT22_PIN)
 
-pms7003 = None
-if getattr(config, "ENABLE_PMS7003", False):
-    from sensors.pms7003 import PMS7003Sensor
+pms5003 = None
+if getattr(config, "ENABLE_PMS5003", False):
+    from sensors.pms5003 import PMS5003Sensor
 
-    pms7003 = PMS7003Sensor(config.PMS7003_UART_ID, config.PMS7003_TX_PIN, config.PMS7003_RX_PIN)
+    pms5003 = PMS5003Sensor(config.PMS5003_UART_ID, config.PMS5003_TX_PIN, config.PMS5003_RX_PIN)
 
 def ensure_wifi():
     wlan = network.WLAN(network.STA_IF)
@@ -52,7 +52,7 @@ def take_reading():
     already treats every sensor field as optional, precisely so one flaky
     sensor doesn't block the whole reading from being recorded."""
     temperature_c, humidity_pct = dht22.read()
-    pm25, pm10 = pms7003.read() if pms7003 else (None, None)
+    pm25, pm10 = pms5003.read() if pms5003 else (None, None)
 
     return {
         "deviceSlug": config.DEVICE_SLUG,

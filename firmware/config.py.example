@@ -38,9 +38,14 @@ CONTINUOUS_INTERVAL_SECONDS = 300  # 5 minutes
 # ESP32-S3 N16R8 (strapping pins / reserved for flash & PSRAM).
 DHT22_PIN = 4
 
-PMS7003_UART_ID = 1
-PMS7003_TX_PIN = 17
-PMS7003_RX_PIN = 18
+# Set to True once the PMS5003 is actually wired in. Leave False to run
+# DHT22-only (temp/humidity) without the firmware trying to talk to a
+# sensor that isn't connected yet.
+ENABLE_PMS5003 = False
+
+PMS5003_UART_ID = 1
+PMS5003_TX_PIN = 17
+PMS5003_RX_PIN = 18
 
 # Only relevant in "spot" mode. Wire one leg of a push button here, the
 # other leg to GND. Internal pull-up is enabled in code, so no resistor

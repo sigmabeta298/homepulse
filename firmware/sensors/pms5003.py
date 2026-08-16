@@ -1,7 +1,7 @@
 """
-PMS7003 particulate matter sensor (UART, 9600 baud, 8N1).
+PMS5003 particulate matter sensor (UART, 9600 baud, 8N1).
 
-The PMS7003 continuously streams 32-byte frames once powered (no commands
+The PMS5003 continuously streams 32-byte frames once powered (no commands
 needed for basic use - it defaults to "active mode"). Frame layout:
 
   byte 0-1   : start bytes, always 0x42 0x4D
@@ -31,7 +31,7 @@ START_BYTE_1 = 0x42
 START_BYTE_2 = 0x4D
 
 
-class PMS7003Sensor:
+class PMS5003Sensor:
     def __init__(self, uart_id, tx_pin, rx_pin):
         self._uart = UART(
             uart_id, baudrate=9600, tx=Pin(tx_pin), rx=Pin(rx_pin), timeout=2000
@@ -46,7 +46,7 @@ class PMS7003Sensor:
 
         checksum = (frame[30] << 8) | frame[31]
         if sum(frame[0:30]) != checksum:
-            print("PMS7003 checksum mismatch, discarding frame")
+            print("PMS5003 checksum mismatch, discarding frame")
             return None, None
 
         pm25 = (frame[12] << 8) | frame[13]
