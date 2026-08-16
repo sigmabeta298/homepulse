@@ -115,7 +115,7 @@
 							class="w-full rounded-lg border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500"
 						/>
 						<p class="mt-1 text-xs text-gray-400">
-							Not yet wired to the dashboard's auto-refresh — stored for when that's added.
+							The dashboard re-fetches the latest reading on this interval automatically.
 						</p>
 					</div>
 				</div>

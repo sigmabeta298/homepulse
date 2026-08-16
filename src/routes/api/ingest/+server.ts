@@ -1,10 +1,12 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { device, reading, armedRoom } from '$lib/server/db/schema';
+import { device, reading } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
-import { ARM_WINDOW_MS, getOrCreateSettings, SETTINGS_ID } from '$lib/server/settings';
+import { getOrCreateSettings } from '$lib/server/settings';
+import { resolveRoomForReading } from '$lib/server/ingest';
+import { isIngestAllowed } from '$lib/server/rate-limit';
 
 // Expected JSON body from the ESP32:
 // {
@@ -19,13 +21,14 @@ import { ARM_WINDOW_MS, getOrCreateSettings, SETTINGS_ID } from '$lib/server/set
 // .env locally and in Vercel's project env vars. The ESP32 sends the same
 // value in every request.
 //
-// Which room a reading belongs to is decided here on the server, not by
-// the firmware, based on the app's current mode:
-//  - continuous mode: always tagged to settings.continuousRoomId
-//  - spot mode: tagged to whichever room was armed via POST /api/arm
-//    within the last ARM_WINDOW_MS. If nothing's armed (or it's gone
-//    stale), the reading is stored with roomId = null ("unassigned") so
-//    it can be tagged manually later instead of silently mislabeled.
+// Which room a reading belongs to is decided in resolveRoomForReading(),
+// not by the firmware, based on the app's current mode - see that file
+// for the continuous vs spot-mode logic.
+//
+// Rate limiting: a minimum gap is enforced per-device between accepted
+// requests (see $lib/server/rate-limit.ts) - protects against a runaway
+// firmware loop or endpoint abuse without getting in the way of any
+// realistic legitimate use.
 
 export const POST: RequestHandler = async ({ request }) => {
 	const apiKey = request.headers.get('x-api-key');
@@ -58,31 +61,13 @@ export const POST: RequestHandler = async ({ request }) => {
 			.returning();
 	}
 
-	const settingsRow = await getOrCreateSettings();
-
-	let roomId: string | null = null;
-	let roundId: string | null = null;
-
-	if (settingsRow.mode === 'continuous') {
-		roomId = settingsRow.continuousRoomId ?? null;
-	} else {
-		// spot mode: consume the current arming if it's still fresh.
-		const [armed] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
-
-		const isFresh =
-			armed?.roomId && armed.armedAt && Date.now() - new Date(armed.armedAt).getTime() < ARM_WINDOW_MS;
-
-		if (isFresh) {
-			roomId = armed.roomId;
-			roundId = armed.roundId;
-			// Clear the arming so a stray second reading doesn't get
-			// double-counted for the same room.
-			await db
-				.update(armedRoom)
-				.set({ roomId: null, roundId: null, armedAt: null })
-				.where(eq(armedRoom.id, SETTINGS_ID));
-		}
+	const now = new Date();
+	if (!isIngestAllowed(existingDevice.lastIngestAt, now)) {
+		throw error(429, 'Too many requests from this device - please slow down.');
 	}
+
+	const settingsRow = await getOrCreateSettings();
+	const { roomId, roundId } = await resolveRoomForReading(settingsRow);
 
 	const numOrNull = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
@@ -99,6 +84,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			pm25UgM3: numOrNull(pm25UgM3)
 		})
 		.returning();
+
+	await db.update(device).set({ lastIngestAt: now }).where(eq(device.id, existingDevice.id));
 
 	return json({ ok: true, reading: inserted }, { status: 201 });
 };

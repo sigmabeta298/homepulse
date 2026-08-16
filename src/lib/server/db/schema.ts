@@ -10,7 +10,11 @@ export const device = sqliteTable('device', {
 	slug: text('slug').notNull().unique(), // e.g. "living-room", used as a stable device identifier from the ESP32
 	createdAt: integer('created_at', { mode: 'timestamp' })
 		.notNull()
-		.$defaultFn(() => new Date())
+		.$defaultFn(() => new Date()),
+	// Timestamp of the most recent accepted /api/ingest request from this
+	// device, used to enforce a minimum gap between requests (see
+	// $lib/server/rate-limit.ts). Null until the first reading arrives.
+	lastIngestAt: integer('last_ingest_at', { mode: 'timestamp' })
 });
 
 // One row per reading pushed from the ESP32.
