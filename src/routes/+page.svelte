@@ -71,7 +71,7 @@
 			</span>
 		</p>
 
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
 			<div
 				class="rounded-xl border p-6 shadow-lg {tempBreach
 					? 'border-red-300 bg-red-50'
@@ -110,9 +110,13 @@
 					<p class="mt-1 text-xs text-red-500">Above your {data.aqiThreshold} µg/m³ alert threshold</p>
 				{/if}
 			</div>
-			<div class="rounded-xl border border-purple-100 bg-white p-6 shadow-lg">
-				<div class="text-sm font-medium tracking-wider text-purple-600 uppercase">CO2</div>
-				<p class="mt-1 text-4xl font-bold">{fmt(latest?.co2Ppm, ' ppm', 0)}</p>
+			<div class="rounded-xl border border-teal-100 bg-white p-6 shadow-lg">
+				<div class="text-sm font-medium tracking-wider text-teal-600 uppercase">PM1.0</div>
+				<p class="mt-1 text-4xl font-bold">{fmt(latest?.pm1UgM3, ' µg/m³')}</p>
+			</div>
+			<div class="rounded-xl border border-indigo-100 bg-white p-6 shadow-lg">
+				<div class="text-sm font-medium tracking-wider text-indigo-600 uppercase">PM10</div>
+				<p class="mt-1 text-4xl font-bold">{fmt(latest?.pm10UgM3, ' µg/m³')}</p>
 			</div>
 		</div>
 	{/if}

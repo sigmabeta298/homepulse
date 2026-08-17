@@ -130,8 +130,9 @@
 								<th class="py-2">Room</th>
 								<th class="py-2">Temp</th>
 								<th class="py-2">Humidity</th>
-								<th class="py-2">CO2</th>
+								<th class="py-2">PM1.0</th>
 								<th class="py-2">PM2.5</th>
+								<th class="py-2">PM10</th>
 								<th class="py-2">Measured</th>
 							</tr>
 						</thead>
@@ -145,14 +146,15 @@
 											{#if isTempBreach(snap.reading.temperatureC)}⚠{/if}
 										</td>
 										<td class="py-2">{fmt(snap.reading.humidityPct, '%')}</td>
-										<td class="py-2">{fmt(snap.reading.co2Ppm, ' ppm', 0)}</td>
+										<td class="py-2">{fmt(snap.reading.pm1UgM3, ' µg/m³')}</td>
 										<td class="py-2 {isAqiBreach(snap.reading.pm25UgM3) ? 'font-semibold text-red-600' : ''}">
 											{fmt(snap.reading.pm25UgM3, ' µg/m³')}
 											{#if isAqiBreach(snap.reading.pm25UgM3)}⚠{/if}
 										</td>
+										<td class="py-2">{fmt(snap.reading.pm10UgM3, ' µg/m³')}</td>
 										<td class="py-2 text-gray-400">{timeLabel(snap.reading.recordedAt)}</td>
 									{:else}
-										<td class="py-2 text-gray-300" colspan="5">Not measured this round</td>
+										<td class="py-2 text-gray-300" colspan="6">Not measured this round</td>
 									{/if}
 								</tr>
 							{/each}
@@ -175,8 +177,9 @@
 							<span class="text-gray-500">{timeLabel(u.recordedAt)}</span>
 							<span>{fmt(u.temperatureC, '°C')}</span>
 							<span>{fmt(u.humidityPct, '%')}</span>
-							<span>{fmt(u.co2Ppm, ' ppm', 0)}</span>
+							<span>{fmt(u.pm1UgM3, ' µg/m³')}</span>
 							<span>{fmt(u.pm25UgM3, ' µg/m³')}</span>
+							<span>{fmt(u.pm10UgM3, ' µg/m³')}</span>
 							<form method="POST" action="?/assignRoom" use:enhance class="ml-auto flex gap-2">
 								<input type="hidden" name="readingId" value={u.id} />
 								<select name="roomId" class="rounded-lg border border-gray-300 p-1.5 text-sm">

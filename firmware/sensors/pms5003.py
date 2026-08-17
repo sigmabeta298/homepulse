@@ -38,20 +38,21 @@ class PMS5003Sensor:
         )
 
     def read(self):
-        """Returns (pm25_ug_m3, pm10_ug_m3), or (None, None) if no valid
-        frame could be read/checksummed within the timeout."""
+        """Returns (pm1_ug_m3, pm25_ug_m3, pm10_ug_m3), or (None, None, None)
+        if no valid frame could be read/checksummed within the timeout."""
         frame = self._read_frame()
         if frame is None:
-            return None, None
+            return None, None, None
 
         checksum = (frame[30] << 8) | frame[31]
         if sum(frame[0:30]) != checksum:
             print("PMS5003 checksum mismatch, discarding frame")
-            return None, None
+            return None, None, None
 
+        pm1 = (frame[10] << 8) | frame[11]
         pm25 = (frame[12] << 8) | frame[13]
         pm10 = (frame[14] << 8) | frame[15]
-        return pm25, pm10
+        return pm1, pm25, pm10
 
     def _read_frame(self):
         # Scan byte-by-byte for the two start bytes, then read the rest of

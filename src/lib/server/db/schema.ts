@@ -35,8 +35,9 @@ export const reading = sqliteTable('reading', {
 	roundId: text('round_id').references(() => round.id),
 	temperatureC: real('temperature_c'),
 	humidityPct: real('humidity_pct'),
-	co2Ppm: real('co2_ppm'),
+	pm1UgM3: real('pm1_ug_m3'),
 	pm25UgM3: real('pm25_ug_m3'),
+	pm10UgM3: real('pm10_ug_m3'),
 	recordedAt: integer('recorded_at', { mode: 'timestamp' })
 		.notNull()
 		.$defaultFn(() => new Date())

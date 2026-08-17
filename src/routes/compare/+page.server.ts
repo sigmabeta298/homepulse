@@ -24,8 +24,9 @@ export const load: PageServerLoad = async ({ url }) => {
 					roomName: room.name,
 					temperatureC: reading.temperatureC,
 					humidityPct: reading.humidityPct,
-					co2Ppm: reading.co2Ppm,
+					pm1UgM3: reading.pm1UgM3,
 					pm25UgM3: reading.pm25UgM3,
+					pm10UgM3: reading.pm10UgM3,
 					recordedAt: reading.recordedAt
 				})
 				.from(reading)
@@ -49,8 +50,9 @@ export const load: PageServerLoad = async ({ url }) => {
 			id: reading.id,
 			temperatureC: reading.temperatureC,
 			humidityPct: reading.humidityPct,
-			co2Ppm: reading.co2Ppm,
+			pm1UgM3: reading.pm1UgM3,
 			pm25UgM3: reading.pm25UgM3,
+			pm10UgM3: reading.pm10UgM3,
 			recordedAt: reading.recordedAt
 		})
 		.from(reading)

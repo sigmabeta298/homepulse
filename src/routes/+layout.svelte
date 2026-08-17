@@ -71,7 +71,7 @@
             </div>
         </header>
 
-        <main class="mx-auto max-w-7xl p-4 pb-24 sm:p-6 lg:p-8 lg:pb-8">
+        <main class="mx-auto max-w-7xl p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
             {@render children()}
         </main>
     </div>

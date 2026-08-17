@@ -13,8 +13,9 @@ import { isIngestAllowed } from '$lib/server/rate-limit';
 //   "deviceSlug": "living-room",
 //   "temperatureC": 22.5,
 //   "humidityPct": 45.1,
-//   "co2Ppm": 612,
-//   "pm25UgM3": 8.2
+//   "pm1UgM3": 4.0,
+//   "pm25UgM3": 8.2,
+//   "pm10UgM3": 11.5
 // }
 //
 // Auth: header `x-api-key: <INGEST_API_KEY>`. Set INGEST_API_KEY in your
@@ -41,7 +42,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(400, 'Invalid JSON body');
 	}
 
-	const { deviceSlug, temperatureC, humidityPct, co2Ppm, pm25UgM3 } = body as Record<
+	const { deviceSlug, temperatureC, humidityPct, pm1UgM3, pm25UgM3, pm10UgM3 } = body as Record<
 		string,
 		unknown
 	>;
@@ -80,8 +81,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			mode: settingsRow.mode,
 			temperatureC: numOrNull(temperatureC),
 			humidityPct: numOrNull(humidityPct),
-			co2Ppm: numOrNull(co2Ppm),
-			pm25UgM3: numOrNull(pm25UgM3)
+			pm1UgM3: numOrNull(pm1UgM3),
+			pm25UgM3: numOrNull(pm25UgM3),
+			pm10UgM3: numOrNull(pm10UgM3)
 		})
 		.returning();
 

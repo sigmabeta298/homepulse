@@ -30,8 +30,9 @@ export const load: PageServerLoad = async ({ url }) => {
 				.select({
 					temperatureC: reading.temperatureC,
 					humidityPct: reading.humidityPct,
-					co2Ppm: reading.co2Ppm,
+					pm1UgM3: reading.pm1UgM3,
 					pm25UgM3: reading.pm25UgM3,
+					pm10UgM3: reading.pm10UgM3,
 					recordedAt: reading.recordedAt
 				})
 				.from(reading)

@@ -52,15 +52,15 @@ def take_reading():
     already treats every sensor field as optional, precisely so one flaky
     sensor doesn't block the whole reading from being recorded."""
     temperature_c, humidity_pct = dht22.read()
-    pm25, pm10 = pms5003.read() if pms5003 else (None, None)
+    pm1, pm25, pm10 = pms5003.read() if pms5003 else (None, None, None)
 
     return {
         "deviceSlug": config.DEVICE_SLUG,
         "temperatureC": temperature_c,
         "humidityPct": humidity_pct,
+        "pm1UgM3": pm1,
         "pm25UgM3": pm25,
-        # pm10 is read but not sent - the current schema/dashboard only
-        # tracks pm25. Easy to add a pm10UgM3 column later if you want it.
+        "pm10UgM3": pm10,
     }
 
 

@@ -5,15 +5,16 @@
 
 	let { data }: PageProps = $props();
 
-	const toPoints = (key: 'temperatureC' | 'humidityPct' | 'co2Ppm' | 'pm25UgM3') =>
+	const toPoints = (key: 'temperatureC' | 'humidityPct' | 'pm1UgM3' | 'pm25UgM3' | 'pm10UgM3') =>
 		data.readings
 			.filter((r) => r[key] !== null)
 			.map((r) => ({ x: new Date(r.recordedAt).getTime(), y: r[key] as number }));
 
 	const tempPoints = $derived(toPoints('temperatureC'));
 	const humidityPoints = $derived(toPoints('humidityPct'));
-	const co2Points = $derived(toPoints('co2Ppm'));
+	const pm1Points = $derived(toPoints('pm1UgM3'));
 	const pm25Points = $derived(toPoints('pm25UgM3'));
+	const pm10Points = $derived(toPoints('pm10UgM3'));
 
 	function setRange(range: string) {
 		const params = new URLSearchParams(window.location.search);
@@ -69,13 +70,18 @@
 		<LineChart points={humidityPoints} color="#ca8a04" unit="%" />
 	</div>
 
-	<div class="rounded-xl border border-purple-100 bg-white p-6 shadow-lg">
-		<h2 class="mb-4 text-xl font-semibold">CO2 (ppm)</h2>
-		<LineChart points={co2Points} color="#9333ea" unit=" ppm" />
+	<div class="rounded-xl border border-teal-100 bg-white p-6 shadow-lg">
+		<h2 class="mb-4 text-xl font-semibold">PM1.0 (µg/m³)</h2>
+		<LineChart points={pm1Points} color="#0d9488" unit=" µg/m³" />
 	</div>
 
 	<div class="rounded-xl border border-blue-100 bg-white p-6 shadow-lg">
 		<h2 class="mb-4 text-xl font-semibold">PM2.5 (µg/m³)</h2>
 		<LineChart points={pm25Points} color="#2563eb" unit=" µg/m³" />
+	</div>
+
+	<div class="rounded-xl border border-indigo-100 bg-white p-6 shadow-lg">
+		<h2 class="mb-4 text-xl font-semibold">PM10 (µg/m³)</h2>
+		<LineChart points={pm10Points} color="#4f46e5" unit=" µg/m³" />
 	</div>
 </div>
