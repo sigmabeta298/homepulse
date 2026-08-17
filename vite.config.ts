@@ -44,6 +44,15 @@ export default defineConfig({
 					name: 'server',
 					environment: 'node',
 					setupFiles: ['./src/lib/server/test-setup.ts'],
+					// Server tests share one temp SQLite file across test files
+					// (see test-setup.ts). Running files in parallel worker
+					// processes races multiple connections against that single
+					// file - tolerated on Linux, but reliably throws
+					// SQLITE_BUSY on Windows due to its stricter file locking.
+					// Sequential execution removes the race entirely; the
+					// suite is small enough that this costs a fraction of a
+					// second, not a meaningful slowdown.
+					fileParallelism: false,
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
