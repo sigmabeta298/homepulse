@@ -1,8 +1,8 @@
 import network
 import time
 
-SSID = "sigmabeta"
-PASSWORD = "sigma82beta78"
+SSID = ""
+PASSWORD = ""
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)

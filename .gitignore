@@ -28,3 +28,8 @@ vite.config.ts.timestamp-*
 firmware/config.py
 !firmware/config.py.example
 firmware/**/__pycache__
+
+#test files
+firmware/test_post.py
+firmware/test_wifi.py
+firmware/test_dht.py

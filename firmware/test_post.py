@@ -2,11 +2,11 @@ import network
 import time
 import urequests
 
-SSID = "sigmabeta"
-PASSWORD = "sigma82beta78"
+SSID = ""
+PASSWORD = ""
 
 API_URL = "http://192.168.0.105:5173/api/ingest"
-API_KEY = "homepulse-dev-key-321"
+API_KEY = ""
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
