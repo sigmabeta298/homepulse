@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { device, reading, room } from '$lib/server/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 import { getOrCreateSettings } from '$lib/server/settings';
+import { evaluateReading } from '$lib/server/environment-rules';
 
 export const load: PageServerLoad = async () => {
 	const settingsRow = await getOrCreateSettings();
@@ -43,6 +44,7 @@ export const load: PageServerLoad = async () => {
 		mode: settingsRow.mode,
 		latest: latest ?? null,
 		roomName: parkedRoom?.name ?? null,
+		suggestions: latest ? evaluateReading(latest) : [],
 		...thresholds
 	};
 };

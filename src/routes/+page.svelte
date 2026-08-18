@@ -71,6 +71,22 @@
 			</span>
 		</p>
 
+		{#if data.suggestions.length > 0}
+			<div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+				<p class="mb-2 text-sm font-semibold text-amber-800">Suggestions</p>
+				<ul class="space-y-1.5 text-sm text-amber-800">
+					{#each data.suggestions as s}
+						<li class="flex gap-2">
+							<span>💡</span>
+							<span>
+								<strong>{s.label}</strong> is {fmt(s.value, s.unit)} — {s.message}
+							</span>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+
 		<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
 			<div
 				class="rounded-xl border p-6 shadow-lg {tempBreach

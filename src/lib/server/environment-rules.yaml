@@ -1,0 +1,62 @@
+# Environment thresholds and suggested remedies for HomePulse.
+#
+# Edit this file directly to tune ranges or wording - no app rebuild
+# needed beyond a normal deploy. Each metric has a "comfortable" range
+# (min/max); a reading outside that range shows the matching suggestion
+# on the dashboard.
+#
+# - Leave min blank (null) for metrics where "lower is always better"
+#   (the particulate matter ones - there's no such thing as too little
+#   dust).
+# - Leave a suggestion blank (null) if there's genuinely nothing useful
+#   to say for that direction (e.g. temperature rarely drops low enough
+#   in Bangalore to need heating advice).
+# - Suggestions are intentionally scoped to what's actually in this
+#   house: fans, windows, and the bathroom exhaust fan. No AC - it's
+#   only used in one room on summer nights and isn't a general remedy.
+#
+# These are sensible starting defaults, not numbers pulled from a
+# specific published standard. Swap them out once you've settled on a
+# reference you trust (WHO indoor air quality guidelines, CPCB, or your
+# own comfort preference).
+
+metrics:
+  temperatureC:
+    label: "Temperature"
+    unit: "°C"
+    min: 20
+    max: 28
+    below_suggestion: null
+    above_suggestion: "Turn the fan on (or up a notch) to cool the room down."
+
+  humidityPct:
+    label: "Humidity"
+    unit: "%"
+    min: 40
+    max: 60
+    below_suggestion: "Air's on the dry side - consider cutting back on fan use for a bit."
+    above_suggestion: "Humidity's high - turn on the bathroom exhaust fan or crack a window open."
+
+  pm1UgM3:
+    label: "PM1.0"
+    unit: " µg/m³"
+    min: null
+    max: 25
+    below_suggestion: null
+    above_suggestion: "Fine particulate levels are elevated - worth keeping windows closed for now."
+
+  pm25UgM3:
+    label: "PM2.5"
+    unit: " µg/m³"
+    min: null
+    max: 35
+    below_suggestion: null
+    above_suggestion: "PM2.5 is elevated - close windows, and hold off on frying or incense for a bit."
+
+  pm10UgM3:
+    label: "PM10"
+    unit: " µg/m³"
+    min: null
+    max: 50
+    below_suggestion: null
+    above_suggestion: "Dust levels are high - worth a quick clean, and keep windows shut for now."

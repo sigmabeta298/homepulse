@@ -164,6 +164,24 @@
 			{/if}
 		</div>
 
+		{#if data.roomSnapshots.some((s) => s.suggestions.length > 0)}
+			<div class="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-lg">
+				<h2 class="mb-3 text-xl font-semibold text-amber-900">Suggestions</h2>
+				<ul class="space-y-2 text-sm text-amber-800">
+					{#each data.roomSnapshots as snap (snap.room.id)}
+						{#each snap.suggestions as s}
+							<li class="flex gap-2">
+								<span>💡</span>
+								<span>
+									<strong>{snap.room.name}</strong> — {s.label} is {s.value}{s.unit}: {s.message}
+								</span>
+							</li>
+						{/each}
+					{/each}
+				</ul>
+			</div>
+		{/if}
+
 		{#if data.unassigned.length > 0}
 			<div class="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-lg">
 				<h2 class="mb-1 text-xl font-semibold text-amber-900">Unassigned Readings</h2>

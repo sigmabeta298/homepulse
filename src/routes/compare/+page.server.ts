@@ -5,6 +5,7 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { getOrCreateSettings } from '$lib/server/settings';
 import { armRoomForSpotCheck, ArmError } from '$lib/server/arm';
+import { evaluateReading } from '$lib/server/environment-rules';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const settingsRow = await getOrCreateSettings();
@@ -35,10 +36,14 @@ export const load: PageServerLoad = async ({ url }) => {
 		: [];
 
 	// One entry per room: its reading this round, or null if not measured yet.
-	const roomSnapshots = rooms.map((r) => ({
-		room: r,
-		reading: readingsForRound.find((rd) => rd.roomId === r.id) ?? null
-	}));
+	const roomSnapshots = rooms.map((r) => {
+		const roomReading = readingsForRound.find((rd) => rd.roomId === r.id) ?? null;
+		return {
+			room: r,
+			reading: roomReading,
+			suggestions: roomReading ? evaluateReading(roomReading) : []
+		};
+	});
 
 	const pastRounds = await db.select().from(round).orderBy(desc(round.startedAt)).limit(20);
 
