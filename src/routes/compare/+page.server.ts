@@ -71,9 +71,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		targetRound,
 		roomSnapshots,
 		pastRounds,
-		unassigned,
-		aqiThreshold: settingsRow.aqiThreshold,
-		tempHighThresholdC: settingsRow.tempHighThresholdC
+		unassigned
 	};
 };
 

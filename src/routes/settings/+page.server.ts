@@ -27,8 +27,6 @@ export const actions: Actions = {
 
 		const temperatureUnit = form.get('temperatureUnit');
 		const refreshIntervalSeconds = Number(form.get('refreshIntervalSeconds'));
-		const aqiThreshold = Number(form.get('aqiThreshold'));
-		const tempHighThresholdC = Number(form.get('tempHighThresholdC'));
 		const mode = form.get('mode');
 		const continuousRoomIdRaw = form.get('continuousRoomId');
 		const continuousRoomId =
@@ -40,12 +38,8 @@ export const actions: Actions = {
 		if (mode !== 'spot' && mode !== 'continuous') {
 			return fail(400, { error: 'Invalid mode' });
 		}
-		if (
-			!Number.isFinite(refreshIntervalSeconds) ||
-			!Number.isFinite(aqiThreshold) ||
-			!Number.isFinite(tempHighThresholdC)
-		) {
-			return fail(400, { error: 'All threshold fields must be numbers' });
+		if (!Number.isFinite(refreshIntervalSeconds)) {
+			return fail(400, { error: 'Refresh interval must be a number' });
 		}
 		if (mode === 'continuous' && !continuousRoomId) {
 			return fail(400, { error: 'Pick which room the device is parked in for Continuous mode' });
@@ -58,8 +52,6 @@ export const actions: Actions = {
 			.set({
 				temperatureUnit,
 				refreshIntervalSeconds,
-				aqiThreshold,
-				tempHighThresholdC,
 				mode,
 				continuousRoomId
 			})

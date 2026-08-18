@@ -23,11 +23,10 @@
 		});
 	}
 
-	function isTempBreach(temperatureC: number | null | undefined) {
-		return temperatureC != null && temperatureC > data.tempHighThresholdC;
-	}
-	function isAqiBreach(pm25UgM3: number | null | undefined) {
-		return pm25UgM3 != null && pm25UgM3 > data.aqiThreshold;
+	// Derived from the same YAML rules that power the Suggestions panel
+	// below - one source of truth, instead of a separate threshold system.
+	function isBreached(suggestions: { metric: string }[], metric: string) {
+		return suggestions.some((s) => s.metric === metric);
 	}
 </script>
 
@@ -141,15 +140,15 @@
 								<tr class="border-b last:border-0">
 									<td class="py-2 font-medium">{snap.room.name}</td>
 									{#if snap.reading}
-										<td class="py-2 {isTempBreach(snap.reading.temperatureC) ? 'font-semibold text-red-600' : ''}">
+										<td class="py-2 {isBreached(snap.suggestions, 'temperatureC') ? 'font-semibold text-red-600' : ''}">
 											{fmt(snap.reading.temperatureC, '°C')}
-											{#if isTempBreach(snap.reading.temperatureC)}⚠{/if}
+											{#if isBreached(snap.suggestions, 'temperatureC')}⚠{/if}
 										</td>
 										<td class="py-2">{fmt(snap.reading.humidityPct, '%')}</td>
 										<td class="py-2">{fmt(snap.reading.pm1UgM3, ' µg/m³')}</td>
-										<td class="py-2 {isAqiBreach(snap.reading.pm25UgM3) ? 'font-semibold text-red-600' : ''}">
+										<td class="py-2 {isBreached(snap.suggestions, 'pm25UgM3') ? 'font-semibold text-red-600' : ''}">
 											{fmt(snap.reading.pm25UgM3, ' µg/m³')}
-											{#if isAqiBreach(snap.reading.pm25UgM3)}⚠{/if}
+											{#if isBreached(snap.suggestions, 'pm25UgM3')}⚠{/if}
 										</td>
 										<td class="py-2">{fmt(snap.reading.pm10UgM3, ' µg/m³')}</td>
 										<td class="py-2 text-gray-400">{timeLabel(snap.reading.recordedAt)}</td>

@@ -121,40 +121,6 @@
 				</div>
 			</div>
 
-			<div class="rounded-xl border border-red-100 bg-white p-6 shadow-lg md:col-span-2">
-				<h2 class="mb-4 text-xl font-semibold text-gray-800">Alert Thresholds</h2>
-
-				<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-					<div>
-						<label for="aqiThreshold" class="mb-2 block text-gray-700"> Max Acceptable PM2.5 </label>
-						<input
-							type="number"
-							id="aqiThreshold"
-							name="aqiThreshold"
-							value={data.settings.aqiThreshold}
-							step="0.1"
-							class="w-full rounded-lg border border-gray-300 p-2 focus:border-red-500 focus:ring-red-500"
-						/>
-					</div>
-
-					<div>
-						<label for="tempHighThresholdC" class="mb-2 block text-gray-700">
-							High Temperature Alert (°C, &gt;)
-						</label>
-						<input
-							type="number"
-							id="tempHighThresholdC"
-							name="tempHighThresholdC"
-							value={data.settings.tempHighThresholdC}
-							step="0.1"
-							class="w-full rounded-lg border border-gray-300 p-2 focus:border-red-500 focus:ring-red-500"
-						/>
-					</div>
-				</div>
-				<p class="mt-2 text-xs text-gray-400">
-					Breaches are highlighted on the Dashboard and Compare pages.
-				</p>
-			</div>
 		</div>
 
 		<button

@@ -98,8 +98,6 @@ export const settings = sqliteTable('settings', {
 		.notNull()
 		.default('C'),
 	refreshIntervalSeconds: integer('refresh_interval_seconds').notNull().default(60),
-	aqiThreshold: real('aqi_threshold').notNull().default(35),
-	tempHighThresholdC: real('temp_high_threshold_c').notNull().default(28),
 	// Which capture mode the whole app is currently in.
 	mode: text('mode', { enum: ['spot', 'continuous'] })
 		.notNull()

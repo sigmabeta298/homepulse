@@ -22,10 +22,17 @@
 		return `${Math.floor(seconds / 86400)}d ago`;
 	}
 
-	const tempBreach = $derived(
-		latest?.temperatureC != null && latest.temperatureC > data.tempHighThresholdC
-	);
-	const aqiBreach = $derived(latest?.pm25UgM3 != null && latest.pm25UgM3 > data.aqiThreshold);
+	// Derived from the same YAML rules that power the suggestions banner -
+	// one source of truth for "is this metric out of range," instead of a
+	// separate threshold system living in Settings.
+	function isBreached(metric: string) {
+		return data.suggestions.some((s) => s.metric === metric);
+	}
+	function breachMessage(metric: string) {
+		return data.suggestions.find((s) => s.metric === metric)?.message;
+	}
+	const tempBreach = $derived(isBreached('temperatureC'));
+	const aqiBreach = $derived(isBreached('pm25UgM3'));
 
 	// Re-runs this page's load function on a timer, using whatever interval
 	// is set in Settings. invalidateAll() re-fetches from the server rather
@@ -102,7 +109,7 @@
 				</div>
 				<p class="mt-1 text-4xl font-bold">{fmt(latest?.temperatureC, '°C')}</p>
 				{#if tempBreach}
-					<p class="mt-1 text-xs text-red-500">Above your {data.tempHighThresholdC}°C alert threshold</p>
+					<p class="mt-1 text-xs text-red-500">{breachMessage('temperatureC')}</p>
 				{/if}
 			</div>
 			<div class="rounded-xl border border-yellow-100 bg-white p-6 shadow-lg">
@@ -123,7 +130,7 @@
 				</div>
 				<p class="mt-1 text-4xl font-bold">{fmt(latest?.pm25UgM3, ' µg/m³')}</p>
 				{#if aqiBreach}
-					<p class="mt-1 text-xs text-red-500">Above your {data.aqiThreshold} µg/m³ alert threshold</p>
+					<p class="mt-1 text-xs text-red-500">{breachMessage('pm25UgM3')}</p>
 				{/if}
 			</div>
 			<div class="rounded-xl border border-teal-100 bg-white p-6 shadow-lg">
