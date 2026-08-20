@@ -2,8 +2,10 @@
 	import './layout.css';
     import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { signOut } from '@auth/sveltekit/client';
+	import type { LayoutProps } from './$types';
 
-	let { children } = $props();
+	let { children, data }: LayoutProps = $props();
 
     const navigation = [
         { href: '/', label: 'Dashboard', icon: '▦' },
@@ -17,6 +19,8 @@
 		return href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 	}
 
+	const isLoginPage = $derived(page.url.pathname === '/login');
+
 	onMount(() => {
 		if ('serviceWorker' in navigator) {
 			navigator.serviceWorker.register('/sw.js').catch((err) => {
@@ -25,6 +29,10 @@
 		}
 	});
 </script>
+
+{#if isLoginPage}
+	{@render children()}
+{:else}
 
 <div class="min-h-screen bg-slate-50 text-slate-900">
     <aside class="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-slate-200 bg-white lg:flex lg:flex-col">
@@ -51,8 +59,13 @@
         </nav>
 
         <div class="border-t border-slate-200 p-4">
-            <p class="text-xs font-medium text-slate-500">System</p>
-            <p class="mt-1 text-xs text-slate-400">Monitoring is active</p>
+            <p class="truncate text-xs font-medium text-slate-500">{data.userEmail ?? 'System'}</p>
+            <button
+                onclick={() => signOut()}
+                class="mt-1 text-xs text-slate-400 underline hover:text-slate-600"
+            >
+                Sign out
+            </button>
         </div>
     </aside>
 
@@ -92,6 +105,7 @@
         {/each}
     </nav>
 </div>
+{/if}
 
 <style>
     a.active {
