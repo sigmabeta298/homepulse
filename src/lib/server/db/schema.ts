@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 // A physical ESP32 node. You only have one now, but this keeps the door
 // open for "Living Room", "Bedroom", etc. later without a schema change.
@@ -108,3 +108,55 @@ export const settings = sqliteTable('settings', {
 });
 
 export type Settings = typeof settings.$inferSelect;
+
+// One row per room per calendar month. This is what raw continuous
+// readings get compressed into once a month is fully over - see
+// $lib/server/retention.ts. Keeps long-term trend data ("how was May
+// 2025 vs May 2026") available forever at near-zero storage cost,
+// instead of every 3-minute reading accumulating indefinitely (which
+// would eventually blow past Turso's free tier).
+//
+// Deliberately NOT tied to spot-check readings - those are point-in-time
+// snapshots for comparing rooms right now, not a trend to average away.
+// Only continuous-mode data ever gets rotated.
+export const monthlySummary = sqliteTable(
+	'monthly_summary',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		roomId: text('room_id')
+			.notNull()
+			.references(() => room.id),
+		year: integer('year').notNull(),
+		month: integer('month').notNull(), // 1-12
+		readingCount: integer('reading_count').notNull(),
+
+		avgTemperatureC: real('avg_temperature_c'),
+		minTemperatureC: real('min_temperature_c'),
+		maxTemperatureC: real('max_temperature_c'),
+
+		avgHumidityPct: real('avg_humidity_pct'),
+		minHumidityPct: real('min_humidity_pct'),
+		maxHumidityPct: real('max_humidity_pct'),
+
+		avgPm1UgM3: real('avg_pm1_ug_m3'),
+		minPm1UgM3: real('min_pm1_ug_m3'),
+		maxPm1UgM3: real('max_pm1_ug_m3'),
+
+		avgPm25UgM3: real('avg_pm25_ug_m3'),
+		minPm25UgM3: real('min_pm25_ug_m3'),
+		maxPm25UgM3: real('max_pm25_ug_m3'),
+
+		avgPm10UgM3: real('avg_pm10_ug_m3'),
+		minPm10UgM3: real('min_pm10_ug_m3'),
+		maxPm10UgM3: real('max_pm10_ug_m3'),
+
+		createdAt: integer('created_at', { mode: 'timestamp' })
+			.notNull()
+			.$defaultFn(() => new Date())
+	},
+	(table) => [uniqueIndex('monthly_summary_room_year_month').on(table.roomId, table.year, table.month)]
+);
+
+export type MonthlySummary = typeof monthlySummary.$inferSelect;

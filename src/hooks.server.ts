@@ -8,17 +8,17 @@ import { env } from '$env/dynamic/private';
 // - /login and /auth/* : the sign-in flow itself (would otherwise be an
 //   infinite redirect loop - can't log in to a page you need to be
 //   logged in to reach).
-// - /api/ingest : the ESP32 has no browser, no cookies, no Google
-//   account. It authenticates with its own x-api-key header, entirely
-//   separately from this login system. Gating this would break the
-//   physical device.
+// - /api/ingest and /api/cron : neither has a browser session. /api/ingest
+//   authenticates with its own x-api-key header (the ESP32); /api/cron
+//   authenticates with its own CRON_SECRET header (Vercel's cron
+//   dispatcher). Gating either behind Google login would break them.
 // - PWA/static assets : manifest, service worker, icons, robots.txt.
-//   Harmless to leave public, and blocking them breaks "Add to Home
-//   Screen" behaving normally even before you've logged in on a device.
+//   Harmless to leave public.
 const PUBLIC_PATH_PREFIXES = [
 	'/login',
 	'/auth',
 	'/api/ingest',
+	'/api/cron',
 	'/manifest.json',
 	'/sw.js',
 	'/icons',
