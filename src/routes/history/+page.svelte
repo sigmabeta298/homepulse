@@ -5,16 +5,49 @@
 
 	let { data }: PageProps = $props();
 
-	const toPoints = (key: 'temperatureC' | 'humidityPct' | 'pm1UgM3' | 'pm25UgM3' | 'pm10UgM3') =>
-		data.readings
-			.filter((r) => r[key] !== null)
-			.map((r) => ({ x: new Date(r.recordedAt).getTime(), y: r[key] as number }));
+	type ReadingKey = 'temperatureC' | 'humidityPct' | 'pm1UgM3' | 'pm25UgM3' | 'pm10UgM3';
 
-	const tempPoints = $derived(toPoints('temperatureC'));
-	const humidityPoints = $derived(toPoints('humidityPct'));
-	const pm1Points = $derived(toPoints('pm1UgM3'));
-	const pm25Points = $derived(toPoints('pm25UgM3'));
-	const pm10Points = $derived(toPoints('pm10UgM3'));
+	// 'readings' view (24h / 7d / month): one point per raw reading.
+	const toReadingPoints = (key: ReadingKey) =>
+		data.view === 'readings'
+			? data.readings
+					.filter((r) => r[key] !== null)
+					.map((r) => ({ x: new Date(r.recordedAt).getTime(), y: r[key] as number }))
+			: [];
+
+	// 'historic' view: one point per completed month, using that month's
+	// average (monthlySummary is all raw readings for that month have
+	// left behind once retention.ts rotates and deletes them).
+	const summaryAvgKey = {
+		temperatureC: 'avgTemperatureC',
+		humidityPct: 'avgHumidityPct',
+		pm1UgM3: 'avgPm1UgM3',
+		pm25UgM3: 'avgPm25UgM3',
+		pm10UgM3: 'avgPm10UgM3'
+	} as const;
+
+	const toHistoricPoints = (key: ReadingKey) =>
+		data.view === 'historic'
+			? data.summaries
+					.filter((s) => s[summaryAvgKey[key]] !== null)
+					.map((s) => ({
+						x: Date.UTC(s.year, s.month - 1, 1),
+						y: s[summaryAvgKey[key]] as number
+					}))
+			: [];
+
+	const tempPoints = $derived(data.view === 'historic' ? toHistoricPoints('temperatureC') : toReadingPoints('temperatureC'));
+	const humidityPoints = $derived(data.view === 'historic' ? toHistoricPoints('humidityPct') : toReadingPoints('humidityPct'));
+	const pm1Points = $derived(data.view === 'historic' ? toHistoricPoints('pm1UgM3') : toReadingPoints('pm1UgM3'));
+	const pm25Points = $derived(data.view === 'historic' ? toHistoricPoints('pm25UgM3') : toReadingPoints('pm25UgM3'));
+	const pm10Points = $derived(data.view === 'historic' ? toHistoricPoints('pm10UgM3') : toReadingPoints('pm10UgM3'));
+
+	const rangeLabels: Record<string, string> = {
+		'24h': 'Last 24 Hours',
+		'7d': 'Last 7 Days',
+		month: 'This Month',
+		historic: 'Historic'
+	};
 
 	function setRange(range: string) {
 		const params = new URLSearchParams(window.location.search);
@@ -35,14 +68,14 @@
 
 	<div class="flex flex-wrap items-center gap-4">
 		<div class="flex gap-2">
-			{#each ['24h', '7d', '30d'] as r}
+			{#each ['24h', '7d', 'month', 'historic'] as r}
 				<button
 					class="rounded-lg border px-4 py-2 {data.range === r
 						? 'bg-indigo-600 text-white'
 						: 'bg-gray-100 hover:bg-gray-200'}"
 					onclick={() => setRange(r)}
 				>
-					{r === '24h' ? 'Last 24 Hours' : r === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+					{rangeLabels[r]}
 				</button>
 			{/each}
 		</div>
@@ -59,6 +92,16 @@
 			</select>
 		{/if}
 	</div>
+
+	{#if data.view === 'historic'}
+		<p class="text-sm text-gray-500">
+			Showing monthly averages. Once a month fully ends, its raw readings are compressed into a
+			single summary row and this history builds up over time.
+			{#if data.summaries.length === 0}
+				No completed months yet for this room.
+			{/if}
+		</p>
+	{/if}
 
 	<div class="rounded-xl border border-blue-100 bg-white p-6 shadow-lg">
 		<h2 class="mb-4 text-xl font-semibold">Temperature (°C)</h2>
