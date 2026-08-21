@@ -1,12 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '$lib/server/db';
-import { room, reading, monthlySummary } from '$lib/server/db/schema';
+import { room, reading, monthlySummary, armedRoom, settings } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { rotateCompletedMonths } from './retention';
 
+// Other spec files sharing this same temp DB can leave rows behind that
+// reference rooms (e.g. an armed_room row from a "leaves a stale arming
+// in place" test, or the singleton settings row's continuous_room_id).
+// Those are foreign keys into `room`, so they must be cleared before we
+// delete rooms here or the delete throws SQLITE_CONSTRAINT_FOREIGNKEY.
 beforeEach(async () => {
 	await db.delete(monthlySummary);
 	await db.delete(reading);
+	await db.delete(armedRoom);
+	await db.delete(settings);
 	await db.delete(room);
 });
 

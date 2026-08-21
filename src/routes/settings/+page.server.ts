@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { settings, room, reading } from '$lib/server/db/schema';
+import { settings, room, reading, armedRoom } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { getOrCreateSettings, SETTINGS_ID } from '$lib/server/settings';
@@ -101,6 +101,37 @@ export const actions: Actions = {
 		if (existingReading) {
 			return fail(400, {
 				roomError: 'This room has recorded readings, so it can\u2019t be deleted (that history would be lost). You can stop using it going forward instead.'
+			});
+		}
+
+		// A room can also be referenced without any readings existing yet:
+		// either it's the room the device is currently "parked in" for
+		// continuous mode, or it's armed for the next spot-mode reading.
+		// The DB's foreign keys would turn either case into an unhandled
+		// 500 on delete, so check for them explicitly and fail cleanly.
+		const [settingsRow] = await db
+			.select({ continuousRoomId: settings.continuousRoomId })
+			.from(settings)
+			.where(eq(settings.id, SETTINGS_ID))
+			.limit(1);
+
+		if (settingsRow?.continuousRoomId === roomId) {
+			return fail(400, {
+				roomError:
+					'This room is currently set as where the device is parked in Continuous mode, so it can\u2019t be deleted. Change the parked-in room first.'
+			});
+		}
+
+		const [armedRoomRow] = await db
+			.select({ roomId: armedRoom.roomId })
+			.from(armedRoom)
+			.where(eq(armedRoom.roomId, roomId))
+			.limit(1);
+
+		if (armedRoomRow) {
+			return fail(400, {
+				roomError:
+					'This room is currently armed for an in-progress spot-check reading, so it can\u2019t be deleted. Wait for the reading to complete or cancel the arming first.'
 			});
 		}
 
