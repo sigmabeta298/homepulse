@@ -9,6 +9,7 @@ import { resolveRoomForReading } from '$lib/server/ingest';
 import { isIngestAllowed } from '$lib/server/rate-limit';
 import { evaluateReading } from '$lib/server/environment-rules';
 import { sendWarningNotifications } from '$lib/server/push';
+import { completeCaptureRequest } from '$lib/server/capture-request';
 
 // Expected JSON body from the ESP32:
 // {
@@ -44,10 +45,15 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(400, 'Invalid JSON body');
 	}
 
-	const { deviceSlug, temperatureC, humidityPct, pm1UgM3, pm25UgM3, pm10UgM3 } = body as Record<
-		string,
-		unknown
-	>;
+	const {
+		deviceSlug,
+		captureRequestId: captureRequestIdValue,
+		temperatureC,
+		humidityPct,
+		pm1UgM3,
+		pm25UgM3,
+		pm10UgM3
+	} = body as Record<string, unknown>;
 
 	if (typeof deviceSlug !== 'string' || deviceSlug.length === 0) {
 		throw error(400, 'deviceSlug is required');
@@ -69,6 +75,23 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(429, 'Too many requests from this device - please slow down.');
 	}
 
+	const captureRequestId =
+		typeof captureRequestIdValue === 'string' && captureRequestIdValue.length > 0
+			? captureRequestIdValue
+			: null;
+
+	if (captureRequestId) {
+		const [existingCaptureReading] = await db
+			.select()
+			.from(reading)
+			.where(eq(reading.captureRequestId, captureRequestId))
+			.limit(1);
+		if (existingCaptureReading) {
+			await completeCaptureRequest(captureRequestId);
+			return json({ ok: true, reading: existingCaptureReading }, { status: 201 });
+		}
+	}
+
 	const settingsRow = await getOrCreateSettings();
 	const { roomId, roundId } = await resolveRoomForReading(settingsRow);
 
@@ -80,6 +103,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			deviceId: existingDevice.id,
 			roomId,
 			roundId,
+			captureRequestId,
 			mode: settingsRow.mode,
 			temperatureC: numOrNull(temperatureC),
 			humidityPct: numOrNull(humidityPct),
@@ -90,6 +114,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		.returning();
 
 	await db.update(device).set({ lastIngestAt: now }).where(eq(device.id, existingDevice.id));
+	if (captureRequestId) {
+		await completeCaptureRequest(captureRequestId);
+	}
 
 	const suggestions = evaluateReading(inserted);
 	if (suggestions.length > 0) {

@@ -40,11 +40,11 @@ def ensure_wifi():
 
 
 def fetch_capture_mode(fallback):
-    """Return the web app's mode, retaining the last known mode on failure."""
+    """Return the current mode and pending remote capture command."""
     ensure_wifi()
     wlan = network.WLAN(network.STA_IF)
     if not wlan.isconnected():
-        return fallback
+        return fallback, None
 
     response = None
     try:
@@ -52,17 +52,20 @@ def fetch_capture_mode(fallback):
         response = urequests.get(url, headers={"x-api-key": config.INGEST_API_KEY})
         if response.status_code != 200:
             print("Mode check failed:", response.status_code)
-            return fallback
+            return fallback, None
 
         payload = ujson.loads(response.text)
         mode = payload.get("mode") if isinstance(payload, dict) else None
         if mode not in ("continuous", "spot"):
             print("Mode check returned an invalid mode")
-            return fallback
-        return mode
+            return fallback, None
+        capture_request_id = payload.get("captureRequestId")
+        if not isinstance(capture_request_id, str):
+            capture_request_id = None
+        return mode, capture_request_id
     except Exception as e:
         print("Mode check failed:", e)
-        return fallback
+        return fallback, None
     finally:
         if response:
             response.close()
@@ -110,9 +113,11 @@ def post_reading(payload):
             response.close()
 
 
-def capture_and_send():
+def capture_and_send(capture_request_id=None):
     ensure_wifi()
     payload = take_reading()
+    if capture_request_id:
+        payload["captureRequestId"] = capture_request_id
     print("Reading:", payload)
     success = post_reading(payload)
     print("Sent OK" if success else "Send failed")
@@ -124,7 +129,7 @@ def main():
     mode = getattr(config, "MODE", "continuous")
     if mode not in ("continuous", "spot"):
         raise ValueError("MODE fallback must be 'continuous' or 'spot', got: %r" % mode)
-    mode = fetch_capture_mode(mode)
+    mode, pending_capture_id = fetch_capture_mode(mode)
     print("Starting HomePulse; capture mode =", mode)
 
     button = Pin(config.CAPTURE_BUTTON_PIN, Pin.IN, Pin.PULL_UP)
@@ -135,15 +140,25 @@ def main():
 
     while True:
         now = time.ticks_ms()
+        remote_capture_id = pending_capture_id
+        pending_capture_id = None
 
         if time.ticks_diff(now, next_mode_check) >= 0:
-            new_mode = fetch_capture_mode(mode)
+            new_mode, remote_capture_id = fetch_capture_mode(mode)
             if new_mode != mode:
                 mode = new_mode
                 print("Capture mode changed from web app:", mode)
                 if mode == "continuous":
                     next_continuous_reading = time.ticks_ms()
             next_mode_check = time.ticks_add(time.ticks_ms(), MODE_POLL_INTERVAL_MS)
+
+        if remote_capture_id:
+            print("Remote capture requested")
+            capture_and_send(remote_capture_id)
+            if mode == "continuous":
+                next_continuous_reading = time.ticks_add(
+                    time.ticks_ms(), interval_ms
+                )
 
         if mode == "continuous" and time.ticks_diff(now, next_continuous_reading) >= 0:
             print("Continuous mode; interval =", config.CONTINUOUS_INTERVAL_SECONDS, "s")

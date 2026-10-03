@@ -20,32 +20,46 @@ export const device = sqliteTable('device', {
 // One row per reading pushed from the ESP32.
 // All sensor fields are nullable: a single POST might only include
 // a subset (e.g. if one sensor on the board fails, the others still land).
-export const reading = sqliteTable('reading', {
-	id: text('id')
-		.primaryKey()
-		.$defaultFn(() => crypto.randomUUID()),
-	deviceId: text('device_id')
-		.notNull()
-		.references(() => device.id),
-	// Which room this reading belongs to. Null means "arrived without an
-	// armed room in spot mode" — an unassigned reading awaiting manual tagging.
-	roomId: text('room_id').references(() => room.id),
-	mode: text('mode', { enum: ['spot', 'continuous'] }).notNull(),
-	// Only set for spot-check readings, groups them into one walkthrough.
-	roundId: text('round_id').references(() => round.id),
-	temperatureC: real('temperature_c'),
-	humidityPct: real('humidity_pct'),
-	pm1UgM3: real('pm1_ug_m3'),
-	pm25UgM3: real('pm25_ug_m3'),
-	pm10UgM3: real('pm10_ug_m3'),
-	recordedAt: integer('recorded_at', { mode: 'timestamp' })
-		.notNull()
-		.$defaultFn(() => new Date())
-});
+export const reading = sqliteTable(
+	'reading',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		deviceId: text('device_id')
+			.notNull()
+			.references(() => device.id),
+		// Which room this reading belongs to. Null means "arrived without an
+		// armed room in spot mode" — an unassigned reading awaiting manual tagging.
+		roomId: text('room_id').references(() => room.id),
+		mode: text('mode', { enum: ['spot', 'continuous'] }).notNull(),
+		// Only set for spot-check readings, groups them into one walkthrough.
+		roundId: text('round_id').references(() => round.id),
+		captureRequestId: text('capture_request_id'),
+		temperatureC: real('temperature_c'),
+		humidityPct: real('humidity_pct'),
+		pm1UgM3: real('pm1_ug_m3'),
+		pm25UgM3: real('pm25_ug_m3'),
+		pm10UgM3: real('pm10_ug_m3'),
+		recordedAt: integer('recorded_at', { mode: 'timestamp' })
+			.notNull()
+			.$defaultFn(() => new Date())
+	},
+	(table) => [uniqueIndex('reading_capture_request_id_unique').on(table.captureRequestId)]
+);
 
 export type Device = typeof device.$inferSelect;
 export type Reading = typeof reading.$inferSelect;
 export type NewReading = typeof reading.$inferInsert;
+
+// A singleton command polled by the ESP32. It stays pending until the
+// resulting reading is stored, so transient network failures can be retried.
+export const captureRequest = sqliteTable('capture_request', {
+	id: text('id').primaryKey().default('default'),
+	requestId: text('request_id').notNull(),
+	requestedAt: integer('requested_at', { mode: 'timestamp' }).notNull(),
+	completedAt: integer('completed_at', { mode: 'timestamp' })
+});
 
 // A room in the house. You manage this list yourself in Settings.
 export const room = sqliteTable('room', {

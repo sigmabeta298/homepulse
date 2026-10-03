@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 
 	const latest = $derived(data.latest);
 
@@ -44,24 +46,75 @@
 		const interval = setInterval(() => {
 			invalidateAll();
 		}, ms);
-		return () => clearInterval(interval);
+		const captureInterval = setInterval(() => {
+			if (data.captureRequest?.pending) invalidateAll();
+		}, 5000);
+		return () => {
+			clearInterval(interval);
+			clearInterval(captureInterval);
+		};
 	});
 </script>
 
 <div class="space-y-6">
 	<h1 class="text-3xl font-bold text-gray-800">Environmental Dashboard</h1>
 
+	<section class="rounded-xl border border-indigo-100 bg-white p-5 shadow-lg">
+		<div class="flex flex-wrap items-center justify-between gap-4">
+			<div>
+				<h2 class="text-lg font-semibold text-gray-800">Remote capture</h2>
+				<p class="mt-1 text-sm text-gray-600">
+					Request one reading from the ESP32. It checks for commands every 15 seconds.
+					{#if data.mode === 'spot'}
+						Arm a room on <a href={resolve('/compare')} class="text-indigo-600 underline">Compare</a
+						>
+						first to assign the reading to that room.
+					{:else}
+						The reading will use the room selected in Settings.
+					{/if}
+				</p>
+			</div>
+			<form method="POST" action="?/captureNow" use:enhance>
+				<button
+					type="submit"
+					disabled={data.captureRequest?.pending}
+					class="rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
+				>
+					{data.captureRequest?.pending ? 'Waiting for device…' : 'Capture now'}
+				</button>
+			</form>
+		</div>
+		{#if form?.captureQueued}
+			<p class="mt-3 text-sm text-green-700">
+				Capture requested. Waiting for the ESP32 to send its reading.
+			</p>
+		{/if}
+		{#if form?.captureError}
+			<p class="mt-3 text-sm text-red-700">{form.captureError}</p>
+		{/if}
+		{#if data.captureRequest?.pending}
+			<p class="mt-3 text-sm text-amber-700">
+				Request queued {timeAgo(data.captureRequest.requestedAt)}. The device must be powered on and
+				connected to Wi-Fi.
+			</p>
+		{:else if data.captureRequest?.completedAt}
+			<p class="mt-3 text-sm text-green-700">
+				Last remote capture completed {timeAgo(data.captureRequest.completedAt)}.
+			</p>
+		{/if}
+	</section>
+
 	{#if data.mode !== 'continuous'}
 		<div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-			You're in <strong>Spot-check</strong> mode, so there's no single "current" room to show
-			here. Head to <a href="/compare" class="underline">Compare</a> to see your room-by-room
+			You're in <strong>Spot-check</strong> mode, so there's no single "current" room to show here.
+			Head to <a href={resolve('/compare')} class="underline">Compare</a> to see your room-by-room
 			walkthrough, or switch to Continuous mode in
-			<a href="/settings" class="underline">Settings</a>.
+			<a href={resolve('/settings')} class="underline">Settings</a>.
 		</div>
 	{:else if !data.roomName}
 		<div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-			You're in Continuous mode but haven't picked which room the device is parked in yet. Set
-			that in <a href="/settings" class="underline">Settings</a>.
+			You're in Continuous mode but haven't picked which room the device is parked in yet. Set that
+			in <a href={resolve('/settings')} class="underline">Settings</a>.
 		</div>
 	{:else}
 		<p class="text-gray-600">
@@ -82,7 +135,7 @@
 			<div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
 				<p class="mb-2 text-sm font-semibold text-amber-800">Suggestions</p>
 				<ul class="space-y-1.5 text-sm text-amber-800">
-					{#each data.suggestions as s}
+					{#each data.suggestions as s (s.metric)}
 						<li class="flex gap-2">
 							<span>💡</span>
 							<span>

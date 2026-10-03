@@ -181,6 +181,13 @@ Spot-check mode, arm the target room in Room Comparison, then press the
 device button within 15 minutes. The firmware itself does not know which
 room it is in.
 
+The dashboard also has a **Capture now** control. It queues one remote
+capture for the ESP32, which checks for it every 15 seconds. In Spot-check
+mode, arm a room in Room Comparison first; in Continuous mode, the reading
+is assigned to the room selected in Settings. The request remains queued
+until a reading is received, so the device must be powered on and connected
+to Wi-Fi.
+
 ## Web application
 
 The HomePulse dashboard is built with:
@@ -275,8 +282,8 @@ copied into Vercel. The app does not recreate or clear rooms on startup;
 rooms are removed only through the Settings UI or by deleting/changing the
 database itself.
 
-When adding the web-push subscription table, apply the schema to the
-intended Turso database before enabling notifications:
+When adding database-backed features, apply the schema to the intended
+Turso database before deploying:
 
 ```bash
 npm run db:push
@@ -285,6 +292,8 @@ npm run db:push
 Drizzle reads `DATABASE_URL` and `DATABASE_AUTH_TOKEN` from the local
 environment for this command. Verify they point to the intended database
 first; Vercel's variables are configured separately in the Vercel project.
+The dashboard's remote capture feature requires this schema update before
+the new version is deployed.
 
 ## PWA push notifications
 

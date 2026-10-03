@@ -187,6 +187,12 @@ deployment/database.
 - Choose **Continuous** once you park the device in one room. It sends
   automatically every `CONTINUOUS_INTERVAL_SECONDS`.
 
+The dashboard's **Capture now** button queues a one-time reading request.
+The ESP32 checks for it during the same 15-second mode poll and sends the
+reading with the current mode and room assignment. Keep the device powered
+and connected to Wi-Fi; the dashboard shows when the request is waiting or
+has completed.
+
 `MODE` in local `config.py` is only a fallback for booting when the API
 cannot be reached; a successful API response overrides it. The button is
 a capture button in Spot-check mode, not a hardware mode switch.

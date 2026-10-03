@@ -1,13 +1,27 @@
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { device, reading, room } from '$lib/server/db/schema';
+import { captureRequest, device, reading, room } from '$lib/server/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 import { getOrCreateSettings } from '$lib/server/settings';
 import { evaluateReading } from '$lib/server/environment-rules';
+import { fail } from '@sveltejs/kit';
+import {
+	CAPTURE_REQUEST_ID,
+	getPendingCaptureRequestId,
+	queueCaptureRequest
+} from '$lib/server/capture-request';
 
 export const load: PageServerLoad = async () => {
 	const settingsRow = await getOrCreateSettings();
 	const refreshIntervalSeconds = settingsRow.refreshIntervalSeconds;
+	const [captureRequestRow] = await db
+		.select()
+		.from(captureRequest)
+		.where(eq(captureRequest.id, CAPTURE_REQUEST_ID));
+	const capturePending = await getPendingCaptureRequestId();
+	const captureStatus = captureRequestRow
+		? { ...captureRequestRow, pending: capturePending !== null }
+		: null;
 
 	// The dashboard only really means something in continuous mode: "here's
 	// the latest reading for the room I'm parked in." In spot-check mode
@@ -19,11 +33,15 @@ export const load: PageServerLoad = async () => {
 			latest: null,
 			roomName: null,
 			suggestions: [],
-			refreshIntervalSeconds
+			refreshIntervalSeconds,
+			captureRequest: captureStatus
 		};
 	}
 
-	const [parkedRoom] = await db.select().from(room).where(eq(room.id, settingsRow.continuousRoomId));
+	const [parkedRoom] = await db
+		.select()
+		.from(room)
+		.where(eq(room.id, settingsRow.continuousRoomId));
 
 	const [latest] = await db
 		.select({
@@ -47,6 +65,17 @@ export const load: PageServerLoad = async () => {
 		latest: latest ?? null,
 		roomName: parkedRoom?.name ?? null,
 		suggestions: latest ? evaluateReading(latest) : [],
-		refreshIntervalSeconds
+		refreshIntervalSeconds,
+		captureRequest: captureStatus
 	};
+};
+
+export const actions: Actions = {
+	captureNow: async () => {
+		if (await getPendingCaptureRequestId()) {
+			return fail(409, { captureError: 'A capture request is already waiting for the device.' });
+		}
+		await queueCaptureRequest();
+		return { captureQueued: true };
+	}
 };
