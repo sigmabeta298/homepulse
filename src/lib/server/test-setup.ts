@@ -15,6 +15,8 @@ const dbPath = path.join(tmpDir, 'test.db');
 const dbUrl = `file:${dbPath}`;
 
 process.env.DATABASE_URL = dbUrl;
+process.env.HOMEPULSE_TEST_DATABASE_URL = dbUrl;
+process.env.VITEST = 'true';
 process.env.INGEST_API_KEY = 'test-key';
 
 if (!existsSync(dbPath)) {
