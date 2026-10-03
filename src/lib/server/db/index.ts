@@ -5,6 +5,12 @@ import { env } from '$env/dynamic/private';
 
 if (!env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
 
+// Vercel's filesystem is ephemeral. Refuse to start with a local SQLite
+// file there, or rooms/settings/readings can appear to reset between runs.
+if (env.VERCEL === '1' && env.DATABASE_URL.startsWith('file:')) {
+	throw new Error('Vercel deployments must use a persistent Turso DATABASE_URL, not a local file');
+}
+
 const client = createClient({
 	url: env.DATABASE_URL,
 	authToken: env.DATABASE_AUTH_TOKEN

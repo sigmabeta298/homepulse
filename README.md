@@ -259,6 +259,17 @@ npm run db:migrate
 npm run db:studio
 ```
 
+Production room names and application settings are stored in the configured
+database, not on the ESP32 or in Vercel's filesystem. Vercel deployments
+must use the persistent Turso `DATABASE_URL` and `DATABASE_AUTH_TOKEN`;
+the app now refuses to start on Vercel if `DATABASE_URL` points to a local
+`file:` database, which would otherwise be ephemeral. Confirm these
+variables are set for the Vercel environment serving the app (Production,
+Preview, or both as appropriate). Local `.env` values are not automatically
+copied into Vercel. The app does not recreate or clear rooms on startup;
+rooms are removed only through the Settings UI or by deleting/changing the
+database itself.
+
 ## ESP32 setup
 
 ### 1. Install the tools
@@ -326,10 +337,18 @@ mpremote connect <YOUR_PORT> fs cp sensors/pms5003.py :sensors/pms5003.py
 Connect to the device:
 
 ```bash
-mpremote connect <YOUR_PORT>
+python -m mpremote connect <YOUR_PORT> repl
 ```
 
-Reset the ESP32 and monitor the output.
+On Windows, find the port in **Device Manager → Ports (COM & LPT)** (for
+example, `COM9`). From the `firmware` directory, list the board's files
+with `python -m mpremote connect COM9 fs ls :`, copy changed files with
+`python -m mpremote connect COM9 fs cp main.py :main.py` (replace the
+source/destination for the file you changed), and list files inside
+`sensors` with `python -m mpremote connect COM9 fs ls :sensors`. In the
+REPL, **Ctrl-D** soft-resets the board and **Ctrl-]** exits back to
+PowerShell. See [firmware/README.md](./firmware/README.md#windows-testing-and-debugging)
+for the complete Windows testing and debugging steps.
 
 ## Configuration
 

@@ -70,13 +70,95 @@ mpremote connect <YOUR_PORT> fs cp sensors/pms5003.py :sensors/pms5003.py
 ### 4. Watch it run
 
 ```bash
-mpremote connect <YOUR_PORT>
+python -m mpremote connect <YOUR_PORT> repl
 ```
 
 This drops into a REPL attached to the board's output. Press the board's
 RESET button (or power-cycle it) and you should see WiFi connect, then
 either the continuous-mode loop or "waiting for button press," depending
 on what you set `MODE` to in `config.py`.
+
+## Windows testing and debugging
+
+These steps assume PowerShell is open in the `firmware` directory and that
+Python, `mpremote`, and the project files are installed as above.
+
+### Find the ESP32 COM port
+
+1. Connect the ESP32 to the computer with a USB data cable.
+2. Open **Device Manager** and expand **Ports (COM & LPT)**. Note the port
+   shown for the ESP32/USB serial device (for example, `COM9`).
+3. If no port appears, try another USB data cable/port and check whether the
+   board needs its USB-to-UART driver.
+
+You can also list detected serial ports from PowerShell:
+
+```powershell
+Get-CimInstance Win32_SerialPort | Select-Object DeviceID, Name
+```
+
+In the commands below, replace `COM9` with the port you found. Run them
+from the directory containing `config.py`, `main.py`, and `sensors/`.
+
+### List files on the ESP32
+
+```powershell
+python -m mpremote connect COM9 fs ls :
+python -m mpremote connect COM9 fs ls :sensors
+```
+
+The root should contain `boot.py`, `main.py`, `config.py`, and `sensors/`.
+The `sensors` directory should contain `dht22.py` and `pms5003.py`.
+`fs ls` only lists files; it does not copy them.
+
+### Copy changed files to the board
+
+Copy only the files you changed. The following commands copy the main
+runtime files and sensor drivers:
+
+```powershell
+python -m mpremote connect COM9 fs mkdir :sensors
+python -m mpremote connect COM9 fs cp boot.py :boot.py
+python -m mpremote connect COM9 fs cp main.py :main.py
+python -m mpremote connect COM9 fs cp config.py :config.py
+python -m mpremote connect COM9 fs cp sensors/dht22.py :sensors/dht22.py
+python -m mpremote connect COM9 fs cp sensors/pms5003.py :sensors/pms5003.py
+```
+
+The `mkdir` command is needed only once; skip it if `:sensors` already
+exists. After copying, list the files again to confirm they are on the
+board. If you changed `config.py`, copy that file too; editing the
+computer copy alone does not update the ESP32.
+
+### Open the REPL, reset, and exit
+
+```powershell
+python -m mpremote connect COM9 repl
+```
+
+The REPL displays startup output. Press **Ctrl-D** to soft-reset the board
+and watch it boot again. In continuous mode, look for the Wi-Fi status,
+`Starting continuous mode`, and then `Sent OK` or a reported error.
+
+Press **Ctrl-]** to leave the REPL and return to PowerShell. This does not
+erase the files on the ESP32. Pressing **Ctrl-C** interrupts the running
+MicroPython program; reset the board to start it again.
+
+### Common checks when no reading appears
+
+- Confirm `WIFI_SSID` and `WIFI_PASSWORD` in the local `config.py`, then
+  copy that file to the board and reset.
+- Confirm `API_BASE_URL` is the deployed HTTPS app URL when using Vercel,
+  or the computer's reachable LAN address when testing against a local
+  server.
+- Confirm `INGEST_API_KEY` on the board matches the Vercel environment
+  variable. Do not paste the key into logs or messages.
+- Confirm `DEVICE_SLUG` is the expected device name and `MODE` is
+  `continuous` for automatic readings.
+- Check the REPL output for import errors, Wi-Fi timeouts, `POST failed`,
+  or `Ingest failed: <status>`. A successful ingestion prints `Sent OK`.
+- A `401` response usually means the API key is missing or mismatched; a
+  network/DNS/TLS error means the ESP32 could not reach the configured URL.
 
 ## Local testing before you deploy to Vercel
 
