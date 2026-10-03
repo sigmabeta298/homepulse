@@ -33,7 +33,8 @@
 <div class="space-y-6">
 	<h1 class="text-3xl font-bold text-gray-800">Room Comparison</h1>
 	<p class="text-gray-600">
-		Walk the device room to room and compare how they look at roughly the same point in time.
+		Walk the device room to room and compare how they look at roughly the same point in time. After
+		switching to Spot-check mode in Settings, the ESP32 applies it automatically within 15 seconds.
 	</p>
 
 	{#if data.mode !== 'spot'}
@@ -57,7 +58,7 @@
 			>
 				<div class="flex-1">
 					<label for="roomId" class="mb-1 block text-sm text-gray-700">
-						Arm for room, then walk over and press the button on the device
+						Arm for room, press the device button within two minutes, then refresh this page
 					</label>
 					<select
 						id="roomId"

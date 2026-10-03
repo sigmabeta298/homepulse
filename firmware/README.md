@@ -74,9 +74,10 @@ python -m mpremote connect <YOUR_PORT> repl
 ```
 
 This drops into a REPL attached to the board's output. Press the board's
-RESET button (or power-cycle it) and you should see WiFi connect, then
-either the continuous-mode loop or "waiting for button press," depending
-on what you set `MODE` to in `config.py`.
+RESET button (or power-cycle it) and you should see Wi-Fi connect, then
+the firmware fetch the capture mode from the web application. It will
+send on the timer in Continuous mode or wait for a button press in
+Spot-check mode.
 
 ## Windows testing and debugging
 
@@ -175,14 +176,17 @@ you deploy to Vercel, switch this to your `https://...vercel.app` URL.
 
 ## Switching modes
 
-`MODE` in `config.py` is a **local** setting on the device, separate from
-(but should match) the "Capture Mode" you pick in the web app's Settings
-page:
+Choose the capture mode in the web app's Settings page. The ESP32 checks
+the authenticated `/api/device/config` endpoint every 15 seconds and
+switches automatically; you do not need to edit or copy `config.py` when
+changing modes. The web app and ESP32 should be connected to the same
+deployment/database.
 
-- Set both to **spot** while you're walking the device room to room.
-  Arm the target room on the Compare page first, then press the button.
-- Set both to **continuous** once you park the device in one room. It'll
-  post automatically every `CONTINUOUS_INTERVAL_SECONDS`.
+- Choose **Spot-check** while walking the device room to room. Arm the
+  target room on Room Comparison, then press the button within two minutes.
+- Choose **Continuous** once you park the device in one room. It sends
+  automatically every `CONTINUOUS_INTERVAL_SECONDS`.
 
-After changing `MODE` in `config.py`, re-copy it to the board (`mpremote
-... fs cp config.py :config.py`) and reset the board.
+`MODE` in local `config.py` is only a fallback for booting when the API
+cannot be reached; a successful API response overrides it. The button is
+a capture button in Spot-check mode, not a hardware mode switch.

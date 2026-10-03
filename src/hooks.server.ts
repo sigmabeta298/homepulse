@@ -8,16 +8,17 @@ import { env } from '$env/dynamic/private';
 // - /login and /auth/* : the sign-in flow itself (would otherwise be an
 //   infinite redirect loop - can't log in to a page you need to be
 //   logged in to reach).
-// - /api/ingest and /api/cron : neither has a browser session. /api/ingest
-//   authenticates with its own x-api-key header (the ESP32); /api/cron
-//   authenticates with its own CRON_SECRET header (Vercel's cron
-//   dispatcher). Gating either behind Google login would break them.
+// - /api/ingest, /api/device and /api/cron : these have no browser session.
+//   Device endpoints authenticate with their own x-api-key header; /api/cron
+//   authenticates with its own CRON_SECRET header (Vercel's cron dispatcher).
+//   Gating them behind Google login would break device/cron requests.
 // - PWA/static assets : manifest, service worker, icons, robots.txt.
 //   Harmless to leave public.
 const PUBLIC_PATH_PREFIXES = [
 	'/login',
 	'/auth',
 	'/api/ingest',
+	'/api/device',
 	'/api/cron',
 	'/manifest.json',
 	'/sw.js',

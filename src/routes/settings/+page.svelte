@@ -7,10 +7,7 @@
 	// Local mirror so the "parked room" dropdown can be hidden/shown as the
 	// user toggles mode, without a full page reload. Re-synced whenever the
 	// server data changes (e.g. after a successful save).
-	let selectedMode = $state('continuous');
-	$effect(() => {
-		selectedMode = data.settings.mode ?? 'continuous';
-	});
+	let selectedMode = $derived(data.settings.mode);
 </script>
 
 <div class="space-y-6">
@@ -52,10 +49,12 @@
 						<p class="mt-1 text-xs text-gray-400">
 							{#if selectedMode === 'continuous'}
 								The device posts on its own timer, all tagged to the room below. Dashboard and
-								History reflect this room.
+								History reflect this room. The ESP32 applies this setting automatically within
+								15 seconds.
 							{:else}
 								Arm a room from the Compare page, then press the capture button — each reading
-								gets tagged to whichever room was armed.
+								gets tagged to whichever room was armed. The ESP32 applies this setting
+								automatically within 15 seconds.
 							{/if}
 						</p>
 					</div>

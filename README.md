@@ -164,7 +164,7 @@ Sensor reading
 ...
 ```
 
-The interval is configured in `config.py`.
+The interval is configured in the device's `config.py`.
 
 The default configuration is **5 minutes**.
 
@@ -174,7 +174,12 @@ The device can be carried from room to room and a reading is captured when the p
 
 This makes it possible to compare environmental conditions between different locations without requiring a permanently installed sensor in every room.
 
-The web application is responsible for identifying the target room. The firmware itself does not know which room it is in.
+Choose Spot-check mode in the web application's Settings page. The ESP32
+fetches the selected mode from the authenticated API every 15 seconds, so
+there is no need to copy firmware configuration when changing modes. In
+Spot-check mode, arm the target room in Room Comparison, then press the
+device button within two minutes. The firmware itself does not know which
+room it is in.
 
 ## Web application
 
@@ -370,7 +375,9 @@ PMS5003_RX_PIN = 18
 CAPTURE_BUTTON_PIN = 5
 ```
 
-The firmware keeps the hardware configuration separate from the application code so that pin assignments and operating modes can be changed without modifying the sensor drivers.
+The firmware keeps hardware configuration separate from sensor drivers.
+Capture mode is selected in the web application and synchronized to the ESP32
+through the authenticated device API.
 
 ## Local ESP32 testing
 

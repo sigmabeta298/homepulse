@@ -20,16 +20,13 @@ INGEST_API_KEY = "change-me-to-match-your-server"
 # physical device, per the project's design.
 DEVICE_SLUG = "homepulse"
 
-# --- Capture mode ---
-# "continuous": read + POST on a timer, forever, no button needed.
-#               Use this when the device is parked in one room.
-# "spot":       read + POST only when the button is pressed.
-#               Use this while walking the device room to room. Remember to
-#               arm the room on the Compare page (in the web app) BEFORE
-#               pressing the button, or the reading will land unassigned.
+# --- Capture mode fallback ---
+# The ESP32 fetches the current mode from the web app every 15 seconds.
+# Change the mode in the web app's Settings page; no config copy is needed.
+# This local value is used only if the app cannot be reached after boot.
 MODE = "continuous"
 
-# Only used when MODE = "continuous". How often to take + send a reading.
+# How often continuous mode takes and sends a reading.
 CONTINUOUS_INTERVAL_SECONDS = 300  # 5 minutes
 
 # --- Pins ---
