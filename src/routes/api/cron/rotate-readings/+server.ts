@@ -1,9 +1,9 @@
-import { json, error } from '@sveltejs/kit';
+﻿import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { rotateCompletedMonths } from '$lib/server/retention';
 
-// Vercel Cron automatically sends `Authorization: Bearer $CRON_SECRET`
+// Vercel Cron automatically sends `Authorization: Bearer <CRON_SECRET>`
 // when a CRON_SECRET project env var is set - checking it here is what
 // stops anyone else (or a stray bot) from triggering/hammering this
 // endpoint. This route is deliberately exempted from the login gate in

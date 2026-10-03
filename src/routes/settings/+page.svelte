@@ -7,9 +7,9 @@
 	// Local mirror so the "parked room" dropdown can be hidden/shown as the
 	// user toggles mode, without a full page reload. Re-synced whenever the
 	// server data changes (e.g. after a successful save).
-	let selectedMode = $state(data.settings.mode);
+	let selectedMode = $state('continuous');
 	$effect(() => {
-		selectedMode = data.settings.mode;
+		selectedMode = data.settings.mode ?? 'continuous';
 	});
 </script>
 
