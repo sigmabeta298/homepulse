@@ -275,6 +275,47 @@ copied into Vercel. The app does not recreate or clear rooms on startup;
 rooms are removed only through the Settings UI or by deleting/changing the
 database itself.
 
+When adding the web-push subscription table, apply the schema to the
+intended Turso database before enabling notifications:
+
+```bash
+npm run db:push
+```
+
+Drizzle reads `DATABASE_URL` and `DATABASE_AUTH_TOKEN` from the local
+environment for this command. Verify they point to the intended database
+first; Vercel's variables are configured separately in the Vercel project.
+
+## PWA push notifications
+
+The Settings page can subscribe the current signed-in browser to push
+notifications for sensor readings that trigger the dashboard's configured
+environment warnings. Delivery uses Web Push/VAPID, and subscriptions are
+stored in Turso with the signed-in email so users can remove their own
+subscription. Each qualifying reading can send a notification; the browser
+may group or suppress notifications according to its own policy.
+
+Generate a VAPID key pair locally with:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Add the generated `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and a
+`VAPID_SUBJECT` such as `mailto:you@example.com` to Vercel's Production
+environment variables, then redeploy. Keep the private key secret and
+never commit it. The same variables may be set in `.env` for local
+development.
+
+After the Turso schema has been updated and Vercel redeployed, open the
+installed HomePulse PWA while signed in, visit **Settings → Push
+Notifications**, and select **Enable notifications on this device**.
+Allow the browser permission prompt. The Settings page reports unsupported
+browsers, missing server configuration, and denied permission. Use
+**Disable on this device** to revoke the browser subscription; notification
+permission can also be revoked in the browser/OS settings. On iOS, install
+the site as a Home Screen web app before enabling push.
+
 ## ESP32 setup
 
 ### 1. Install the tools

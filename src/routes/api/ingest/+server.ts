@@ -1,12 +1,14 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { device, reading } from '$lib/server/db/schema';
+import { device, reading, room as roomTable } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { getOrCreateSettings } from '$lib/server/settings';
 import { resolveRoomForReading } from '$lib/server/ingest';
 import { isIngestAllowed } from '$lib/server/rate-limit';
+import { evaluateReading } from '$lib/server/environment-rules';
+import { sendWarningNotifications } from '$lib/server/push';
 
 // Expected JSON body from the ESP32:
 // {
@@ -88,6 +90,24 @@ export const POST: RequestHandler = async ({ request }) => {
 		.returning();
 
 	await db.update(device).set({ lastIngestAt: now }).where(eq(device.id, existingDevice.id));
+
+	const suggestions = evaluateReading(inserted);
+	if (suggestions.length > 0) {
+		let roomName: string | null = null;
+		if (roomId) {
+			try {
+				const [assignedRoom] = await db
+					.select({ name: roomTable.name })
+					.from(roomTable)
+					.where(eq(roomTable.id, roomId))
+					.limit(1);
+				roomName = assignedRoom?.name ?? null;
+			} catch (cause) {
+				console.error('Could not load room name for warning notification.', cause);
+			}
+		}
+		await sendWarningNotifications(suggestions, roomName);
+	}
 
 	return json({ ok: true, reading: inserted }, { status: 201 });
 };

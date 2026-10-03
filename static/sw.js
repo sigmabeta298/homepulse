@@ -44,3 +44,36 @@ self.addEventListener('fetch', (event) => {
 		);
 	}
 });
+
+self.addEventListener('push', (event) => {
+	const data = event.data ? event.data.json() : {};
+	const title = typeof data.title === 'string' ? data.title : 'HomePulse alert';
+	const body = typeof data.body === 'string' ? data.body : 'A sensor warning was reported.';
+	const notificationUrl = typeof data.url === 'string' ? data.url : '/';
+
+	event.waitUntil(
+		self.registration.showNotification(title, {
+			body,
+			icon: '/icons/icon-192.png',
+			badge: '/icons/icon-192.png',
+			data: { url: notificationUrl }
+		})
+	);
+});
+
+self.addEventListener('notificationclick', (event) => {
+	event.notification.close();
+	const target = new URL(event.notification.data?.url || '/', self.location.origin);
+	const url = target.origin === self.location.origin ? target.href : self.location.origin;
+
+	event.waitUntil(
+		self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+			for (const client of clients) {
+				if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+					return client.navigate(url).then(() => client.focus());
+				}
+			}
+			return self.clients.openWindow(url);
+		})
+	);
+});

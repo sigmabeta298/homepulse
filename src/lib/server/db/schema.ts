@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 // A physical ESP32 node. You only have one now, but this keeps the door
 // open for "Living Room", "Bedroom", etc. later without a schema change.
@@ -108,6 +108,22 @@ export const settings = sqliteTable('settings', {
 });
 
 export type Settings = typeof settings.$inferSelect;
+
+// One browser push subscription per endpoint. The email comes from the
+// authenticated session and scopes listing/removal to the subscribing user.
+export const pushSubscription = sqliteTable(
+	'push_subscription',
+	{
+		endpoint: text('endpoint').primaryKey(),
+		userEmail: text('user_email').notNull(),
+		p256dh: text('p256dh').notNull(),
+		auth: text('auth').notNull(),
+		createdAt: integer('created_at', { mode: 'timestamp' })
+			.notNull()
+			.$defaultFn(() => new Date())
+	},
+	(table) => [index('push_subscription_user_email').on(table.userEmail)]
+);
 
 // One row per room per calendar month. This is what raw continuous
 // readings get compressed into once a month is fully over - see

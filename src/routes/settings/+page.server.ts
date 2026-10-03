@@ -4,13 +4,18 @@ import { settings, room, reading, armedRoom } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
 import { getOrCreateSettings, SETTINGS_ID } from '$lib/server/settings';
+import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async () => {
 	const [settingsRow, rooms] = await Promise.all([
 		getOrCreateSettings(),
 		db.select().from(room).orderBy(room.sortOrder)
 	]);
-	return { settings: settingsRow, rooms };
+	return {
+		settings: settingsRow,
+		rooms,
+		databaseStorage: env.DATABASE_URL?.startsWith('file:') ? 'local-file' : 'remote'
+	};
 };
 
 function slugify(name: string) {

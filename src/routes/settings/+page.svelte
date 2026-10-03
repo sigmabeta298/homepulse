@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import PushNotificationSettings from '$lib/components/PushNotificationSettings.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -26,6 +27,21 @@
 	{#if form?.error}
 		<div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
 			{form.error}
+		</div>
+	{/if}
+
+	{#if data.databaseStorage === 'local-file'}
+		<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+			This app instance is using a local SQLite file. That file is not persistent on Vercel, so
+			changes made here may not be available to other requests. Set the Vercel
+			<code>DATABASE_URL</code> and <code>DATABASE_AUTH_TOKEN</code> to your Turso database and
+			redeploy.
+		</div>
+	{:else}
+		<div class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+			This app instance is configured to use a remote database. On Vercel, verify its
+			<code>DATABASE_URL</code> and <code>DATABASE_AUTH_TOKEN</code> point to your intended Turso
+			database.
 		</div>
 	{/if}
 
@@ -129,6 +145,8 @@
 			Save Settings
 		</button>
 	</form>
+
+	<PushNotificationSettings />
 
 	<div class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg">
 		<h2 class="mb-4 text-xl font-semibold text-gray-800">Rooms</h2>
