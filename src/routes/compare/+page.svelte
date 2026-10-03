@@ -42,7 +42,8 @@
 <div class="space-y-6">
 	<h1 class="text-3xl font-bold text-gray-800">Room Comparison</h1>
 	<p class="text-gray-600">
-		Walk the device room to room and compare how they look at roughly the same point in time. After
+		Walk the device room to room and compare how they look at roughly the same point in time. Arm a
+		room and request its reading right here; no computer or serial connection is needed. After
 		switching to Spot-check mode in Settings, the ESP32 applies it automatically within 15 seconds.
 		Room armings last 15 minutes, and readings refresh here automatically every five seconds. The
 		PMS5003 streams continuously; allow about 30 seconds after powering on for its fan to stabilize.
@@ -69,7 +70,7 @@
 			>
 				<div class="flex-1">
 					<label for="roomId" class="mb-1 block text-sm text-gray-700">
-						Arm a room, carry the device there, and press its button within 15 minutes
+						Arm the room where the device is located
 					</label>
 					<select
 						id="roomId"
@@ -92,12 +93,52 @@
 
 			{#if data.activeArmedRoom}
 				<div class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-					Armed for <strong>{data.activeArmedRoom.name}</strong>. Carry the device there and press
-					the capture button within 15 minutes.
+					Armed for <strong>{data.activeArmedRoom.name}</strong>. Request a capture below within 15
+					minutes.
 				</div>
 			{:else if form?.error}
 				<div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
 					{form.error}
+				</div>
+			{/if}
+
+			{#if data.activeArmedRoom}
+				<form
+					method="POST"
+					action="?/captureNow"
+					use:enhance
+					class="flex flex-wrap items-center gap-3 rounded-xl border border-indigo-100 bg-white p-4 shadow-lg"
+				>
+					<button
+						type="submit"
+						disabled={data.captureRequest?.pending}
+						class="rounded-lg bg-indigo-600 px-6 py-2 font-medium text-white hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
+					>
+						{data.captureRequest?.pending ? 'Waiting for device…' : 'Capture this room now'}
+					</button>
+					<span class="text-sm text-gray-600">
+						The ESP32 checks for requests every 15 seconds. Keep it powered and connected to Wi-Fi.
+					</span>
+				</form>
+			{/if}
+			{#if form?.captureQueued}
+				<div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-800">
+					Capture requested for <strong>{form.captureRoomName}</strong>. The room's row will update
+					when the ESP32 sends its reading.
+				</div>
+			{/if}
+			{#if form?.captureError}
+				<div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+					{form.captureError}
+				</div>
+			{/if}
+			{#if data.captureRequest?.pending}
+				<div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+					A capture request is waiting for the ESP32. It must be powered on and connected to Wi-Fi.
+				</div>
+			{:else if data.captureRequest?.completedAt}
+				<div class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+					The last remote capture completed. Readings refresh here automatically.
 				</div>
 			{/if}
 		{/if}
@@ -116,7 +157,7 @@
 						{#if data.targetRound}
 							Latest readings appear automatically.
 						{:else}
-							Arm a room above and take your first reading to start a walkthrough.
+							Arm a room above and request your first reading to start a walkthrough.
 						{/if}
 					</p>
 				</div>

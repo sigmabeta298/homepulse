@@ -183,15 +183,16 @@ changing modes. The web app and ESP32 should be connected to the same
 deployment/database.
 
 - Choose **Spot-check** while walking the device room to room. Arm the
-  target room on Room Comparison, then press the button within 15 minutes.
+  target room on Room Comparison, then press the physical button or use
+  **Capture this room now** on the page within 15 minutes.
 - Choose **Continuous** once you park the device in one room. It sends
   automatically every `CONTINUOUS_INTERVAL_SECONDS`.
 
-The dashboard's **Capture now** button queues a one-time reading request.
-The ESP32 checks for it during the same 15-second mode poll and sends the
-reading with the current mode and room assignment. Keep the device powered
-and connected to Wi-Fi; the dashboard shows when the request is waiting or
-has completed.
+The dashboard's **Capture this room now** button on Room Comparison queues
+a one-time reading request for the currently armed room. The ESP32 checks
+for it during the same 15-second mode poll and sends the reading with the
+current mode and room assignment. Keep the device powered and connected to
+Wi-Fi; the dashboard shows when the request is waiting or has completed.
 
 `MODE` in local `config.py` is only a fallback for booting when the API
 cannot be reached; a successful API response overrides it. The button is

@@ -1,8 +1,17 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	onMount(() => {
+		const interval = setInterval(() => {
+			void invalidateAll();
+		}, 5000);
+		return () => clearInterval(interval);
+	});
 
 	function timeAgo(date: Date | string | null | undefined) {
 		if (!date) return 'Never';
@@ -46,8 +55,8 @@
 <div class="space-y-6">
 	<h1 class="text-3xl font-bold text-gray-800">Sensors & Devices Management</h1>
 	<p class="text-gray-600">
-		Devices are added automatically the first time they post a reading to <code>/api/ingest</code
-		>. There's nothing to configure here manually yet — only one HomePulse unit is expected, so
+		Devices are added automatically the first time they post a reading to <code>/api/ingest</code>.
+		There's nothing to configure here manually yet — only one HomePulse unit is expected, so
 		anything else listed is likely leftover test data you can remove below.
 	</p>
 
@@ -62,8 +71,7 @@
 
 		{#if data.devices.length === 0}
 			<p class="text-gray-500">
-				No devices yet. Once your ESP32 posts its first reading, it'll show up here
-				automatically.
+				No devices yet. Once your ESP32 posts its first reading, it'll show up here automatically.
 			</p>
 		{:else}
 			<p class="mb-4 text-sm text-gray-600">

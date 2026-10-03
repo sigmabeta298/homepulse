@@ -172,21 +172,25 @@ The default configuration is **5 minutes**.
 
 The device can be carried from room to room and a reading is captured when the physical button is pressed.
 
-This makes it possible to compare environmental conditions between different locations without requiring a permanently installed sensor in every room.
+This makes it possible to compare environmental conditions between different
+locations without requiring a permanently installed sensor in every room. Arm
+each room and request its reading directly from the Room Comparison page; the
+physical button is optional.
 
 Choose Spot-check mode in the web application's Settings page. The ESP32
 fetches the selected mode from the authenticated API every 15 seconds, so
 there is no need to copy firmware configuration when changing modes. In
 Spot-check mode, arm the target room in Room Comparison, then press the
-device button within 15 minutes. The firmware itself does not know which
-room it is in.
+device button within 15 minutes, or use **Capture now** on that page to
+trigger the ESP32 remotely. The firmware itself does not know which room it
+is in.
 
-The dashboard also has a **Capture now** control. It queues one remote
-capture for the ESP32, which checks for it every 15 seconds. In Spot-check
-mode, arm a room in Room Comparison first; in Continuous mode, the reading
-is assigned to the room selected in Settings. The request remains queued
-until a reading is received, so the device must be powered on and connected
-to Wi-Fi.
+Room Comparison has a **Capture this room now** control after you arm a
+room. The dashboard also provides **Capture now** for Continuous mode. The
+ESP32 checks for requests every 15 seconds. A Spot-check capture uses the
+currently armed room; a Continuous capture uses the room selected in
+Settings. Requests stay queued until the device sends a reading, so it must
+be powered on and connected to Wi-Fi.
 
 ## Web application
 
