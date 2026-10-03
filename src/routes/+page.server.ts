@@ -1,8 +1,8 @@
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { captureRequest, device, reading, room } from '$lib/server/db/schema';
+import { armedRoom, captureRequest, device, reading, room } from '$lib/server/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
-import { getOrCreateSettings } from '$lib/server/settings';
+import { ARM_WINDOW_MS, getOrCreateSettings, SETTINGS_ID } from '$lib/server/settings';
 import { evaluateReading } from '$lib/server/environment-rules';
 import { fail } from '@sveltejs/kit';
 import {
@@ -75,7 +75,37 @@ export const actions: Actions = {
 		if (await getPendingCaptureRequestId()) {
 			return fail(409, { captureError: 'A capture request is already waiting for the device.' });
 		}
-		await queueCaptureRequest();
+
+		const settingsRow = await getOrCreateSettings();
+		if (settingsRow.mode === 'continuous') {
+			await queueCaptureRequest({
+				mode: 'continuous',
+				roomId: settingsRow.continuousRoomId
+			});
+		} else {
+			const [arming] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
+			const armedRoomId = arming?.roomId;
+			const armedRoundId = arming?.roundId;
+			const armToken = arming?.armToken;
+			const armedTimestamp = arming?.armedAt;
+			if (
+				!armedRoomId ||
+				!armedRoundId ||
+				!armToken ||
+				!armedTimestamp ||
+				Date.now() - new Date(armedTimestamp).getTime() >= ARM_WINDOW_MS
+			) {
+				return fail(400, {
+					captureError: 'Arm a room in Room Comparison before requesting a capture.'
+				});
+			}
+			await queueCaptureRequest({
+				mode: 'spot',
+				roomId: armedRoomId,
+				roundId: armedRoundId,
+				armToken
+			});
+		}
 		return { captureQueued: true };
 	}
 };

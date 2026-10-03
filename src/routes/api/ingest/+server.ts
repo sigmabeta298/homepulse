@@ -5,11 +5,11 @@ import { device, reading, room as roomTable } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { getOrCreateSettings } from '$lib/server/settings';
-import { resolveRoomForReading } from '$lib/server/ingest';
+import { resolveRoomForCaptureRequest, resolveRoomForReading } from '$lib/server/ingest';
 import { isIngestAllowed } from '$lib/server/rate-limit';
 import { evaluateReading } from '$lib/server/environment-rules';
 import { sendWarningNotifications } from '$lib/server/push';
-import { completeCaptureRequest } from '$lib/server/capture-request';
+import { completeCaptureRequest, getPendingCaptureRequest } from '$lib/server/capture-request';
 
 // Expected JSON body from the ESP32:
 // {
@@ -92,8 +92,25 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 	}
 
+	const captureRequest = captureRequestId ? await getPendingCaptureRequest(captureRequestId) : null;
+	if (captureRequestId && !captureRequest) {
+		throw error(409, 'Capture request is no longer pending.');
+	}
+
 	const settingsRow = await getOrCreateSettings();
-	const { roomId, roundId } = await resolveRoomForReading(settingsRow);
+	let mode = settingsRow.mode;
+	let roomId: string | null;
+	let roundId: string | null;
+	if (captureRequest) {
+		mode = captureRequest.mode;
+		const resolved = await resolveRoomForCaptureRequest(captureRequest);
+		roomId = resolved.roomId;
+		roundId = resolved.roundId;
+	} else {
+		const resolved = await resolveRoomForReading(settingsRow);
+		roomId = resolved.roomId;
+		roundId = resolved.roundId;
+	}
 
 	const numOrNull = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
@@ -104,7 +121,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			roomId,
 			roundId,
 			captureRequestId,
-			mode: settingsRow.mode,
+			mode,
 			temperatureC: numOrNull(temperatureC),
 			humidityPct: numOrNull(humidityPct),
 			pm1UgM3: numOrNull(pm1UgM3),

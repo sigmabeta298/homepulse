@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '$lib/server/db';
-import { room, round, armedRoom } from '$lib/server/db/schema';
-import { isNull } from 'drizzle-orm';
+import { device, reading, room, round, armedRoom } from '$lib/server/db/schema';
+import { eq, isNull } from 'drizzle-orm';
 import { armRoomForSpotCheck, ArmError } from './arm';
 
 beforeEach(async () => {
 	// Wipe rounds/armedRoom between tests so "is there an active round"
 	// checks in each test start from a clean slate.
+	await db.delete(reading);
 	await db.delete(armedRoom);
 	await db.delete(round);
 });
@@ -80,5 +81,57 @@ describe('armRoomForSpotCheck', () => {
 		const activeRounds = await db.select().from(round).where(isNull(round.endedAt));
 		expect(activeRounds).toHaveLength(1);
 		expect(activeRounds[0].id).toBe(result.roundId);
+	});
+
+	it('keeps a round active when it has a recent reading even if it started earlier', async () => {
+		const kitchen = await makeRoom('Kitchen');
+		const staleStartedAt = new Date(Date.now() - 31 * 60 * 1000);
+		const [activeRound] = await db.insert(round).values({ startedAt: staleStartedAt }).returning();
+		const [testDevice] = await db
+			.insert(device)
+			.values({ name: 'test-device', slug: `test-device-${crypto.randomUUID()}` })
+			.returning();
+		await db.insert(reading).values({
+			deviceId: testDevice.id,
+			roomId: kitchen.id,
+			roundId: activeRound.id,
+			mode: 'spot',
+			recordedAt: new Date(Date.now() - 60 * 1000)
+		});
+
+		const result = await armRoomForSpotCheck(kitchen.id);
+
+		expect(result.roundId).toBe(activeRound.id);
+		const activeRounds = await db.select().from(round).where(isNull(round.endedAt));
+		expect(activeRounds).toHaveLength(1);
+	});
+
+	it('reuses the newest recent round and closes other open rounds', async () => {
+		const kitchen = await makeRoom('Kitchen');
+		const olderStartedAt = new Date(Date.now() - 5 * 60 * 1000);
+		const newerStartedAt = new Date(Date.now() - 2 * 60 * 1000);
+		const [olderRound] = await db.insert(round).values({ startedAt: olderStartedAt }).returning();
+		const [newerRound] = await db.insert(round).values({ startedAt: newerStartedAt }).returning();
+		const [testDevice] = await db
+			.insert(device)
+			.values({ name: 'test-device', slug: `test-device-${crypto.randomUUID()}` })
+			.returning();
+		await db.insert(reading).values({
+			deviceId: testDevice.id,
+			roomId: kitchen.id,
+			roundId: olderRound.id,
+			mode: 'spot'
+		});
+
+		const result = await armRoomForSpotCheck(kitchen.id);
+
+		expect(result.roundId).toBe(newerRound.id);
+		const openRounds = await db.select().from(round).where(isNull(round.endedAt));
+		expect(openRounds).toHaveLength(1);
+		expect(openRounds[0].id).toBe(newerRound.id);
+		const [closedOlderRound] = await db.select().from(round).where(eq(round.id, olderRound.id));
+		expect(closedOlderRound.endedAt).toBeTruthy();
+		const [mergedReading] = await db.select().from(reading);
+		expect(mergedReading.roundId).toBe(newerRound.id);
 	});
 });

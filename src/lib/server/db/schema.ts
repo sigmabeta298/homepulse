@@ -57,9 +57,17 @@ export type NewReading = typeof reading.$inferInsert;
 export const captureRequest = sqliteTable('capture_request', {
 	id: text('id').primaryKey().default('default'),
 	requestId: text('request_id').notNull(),
+	mode: text('mode', { enum: ['spot', 'continuous'] })
+		.notNull()
+		.default('continuous'),
+	roomId: text('room_id').references(() => room.id),
+	roundId: text('round_id').references(() => round.id),
+	armToken: text('arm_token'),
 	requestedAt: integer('requested_at', { mode: 'timestamp' }).notNull(),
 	completedAt: integer('completed_at', { mode: 'timestamp' })
 });
+
+export type CaptureRequest = typeof captureRequest.$inferSelect;
 
 // A room in the house. You manage this list yourself in Settings.
 export const room = sqliteTable('room', {
@@ -98,6 +106,7 @@ export const armedRoom = sqliteTable('armed_room', {
 	id: text('id').primaryKey().default('default'),
 	roomId: text('room_id').references(() => room.id),
 	roundId: text('round_id').references(() => round.id),
+	armToken: text('arm_token'),
 	armedAt: integer('armed_at', { mode: 'timestamp' })
 });
 
@@ -186,7 +195,9 @@ export const monthlySummary = sqliteTable(
 			.notNull()
 			.$defaultFn(() => new Date())
 	},
-	(table) => [uniqueIndex('monthly_summary_room_year_month').on(table.roomId, table.year, table.month)]
+	(table) => [
+		uniqueIndex('monthly_summary_room_year_month').on(table.roomId, table.year, table.month)
+	]
 );
 
 export type MonthlySummary = typeof monthlySummary.$inferSelect;

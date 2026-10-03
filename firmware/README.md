@@ -191,8 +191,9 @@ deployment/database.
 The dashboard's **Capture this room now** button on Room Comparison queues
 a one-time reading request for the currently armed room. The ESP32 checks
 for it during the same 15-second mode poll and sends the reading with the
-current mode and room assignment. Keep the device powered and connected to
-Wi-Fi; the dashboard shows when the request is waiting or has completed.
+room and walkthrough selected when the request was made. Keep the device
+powered and connected to Wi-Fi; the dashboard shows when the request is
+waiting or has completed.
 
 `MODE` in local `config.py` is only a fallback for booting when the API
 cannot be reached; a successful API response overrides it. The button is

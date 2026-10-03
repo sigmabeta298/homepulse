@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	const capturePending = await getPendingCaptureRequestId();
 	const armedAt = arming?.armedAt ? new Date(arming.armedAt).getTime() : null;
 	const armedRoomIsFresh = Boolean(
-		arming?.roomId && armedAt !== null && Date.now() - armedAt < ARM_WINDOW_MS
+		arming?.roomId && arming.armToken && armedAt !== null && Date.now() - armedAt < ARM_WINDOW_MS
 	);
 	const activeArmedRoom = armedRoomIsFresh
 		? (rooms.find((candidate) => candidate.id === arming?.roomId) ?? null)
@@ -32,9 +32,10 @@ export const load: PageServerLoad = async ({ url }) => {
 	// Which round to show: an explicit ?round=<id>, or the most recent one.
 	const requestedRoundId = url.searchParams.get('round');
 
+	const [latestRound] = await db.select().from(round).orderBy(desc(round.startedAt)).limit(1);
 	const [targetRound] = requestedRoundId
 		? await db.select().from(round).where(eq(round.id, requestedRoundId))
-		: await db.select().from(round).orderBy(desc(round.startedAt)).limit(1);
+		: [latestRound];
 
 	const readingsForRound = targetRound
 		? await db
@@ -88,6 +89,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		mode: settingsRow.mode,
 		rooms,
 		activeArmedRoom,
+		isViewingLatestRound: targetRound?.id === latestRound?.id,
 		captureRequest: captureRequestRow
 			? { ...captureRequestRow, pending: capturePending !== null }
 			: null,
@@ -126,14 +128,20 @@ export const actions: Actions = {
 		}
 
 		const [arming] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
+		const armedRoomId = arming?.roomId;
+		const armedRoundId = arming?.roundId;
+		const armToken = arming?.armToken;
+		const armedTimestamp = arming?.armedAt;
 		if (
-			!arming?.roomId ||
-			!arming.armedAt ||
-			Date.now() - new Date(arming.armedAt).getTime() >= ARM_WINDOW_MS
+			!armedRoomId ||
+			!armedRoundId ||
+			!armToken ||
+			!armedTimestamp ||
+			Date.now() - new Date(armedTimestamp).getTime() >= ARM_WINDOW_MS
 		) {
 			return fail(400, { captureError: 'Arm a room above before requesting its reading.' });
 		}
-		const [armedRoomRecord] = await db.select().from(room).where(eq(room.id, arming.roomId));
+		const [armedRoomRecord] = await db.select().from(room).where(eq(room.id, armedRoomId));
 		if (!armedRoomRecord) {
 			return fail(400, { captureError: 'The armed room no longer exists. Arm an available room.' });
 		}
@@ -142,7 +150,12 @@ export const actions: Actions = {
 			return fail(409, { captureError: 'A capture request is already waiting for the device.' });
 		}
 
-		await queueCaptureRequest();
+		await queueCaptureRequest({
+			mode: 'spot',
+			roomId: armedRoomId,
+			roundId: armedRoundId,
+			armToken
+		});
 		return { captureQueued: true, captureRoomName: armedRoomRecord.name };
 	},
 

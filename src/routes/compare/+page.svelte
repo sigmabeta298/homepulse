@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
+	import { untrack } from 'svelte';
 	import { onMount } from 'svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+	let selectedRoomId = $state(untrack(() => data.activeArmedRoom?.id ?? data.rooms[0]?.id ?? ''));
 
 	onMount(() => {
 		const refreshTimer = setInterval(() => {
@@ -75,7 +78,7 @@
 					<select
 						id="roomId"
 						name="roomId"
-						value={data.activeArmedRoom?.id ?? form?.armedRoomId ?? data.rooms[0]?.id ?? ''}
+						bind:value={selectedRoomId}
 						class="w-full rounded-lg border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500"
 					>
 						{#each data.rooms as r (r.id)}
@@ -144,6 +147,12 @@
 		{/if}
 
 		<div class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg">
+			{#if data.targetRound && !data.isViewingLatestRound}
+				<div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+					You're viewing an older walkthrough. New captures appear in the latest walkthrough.
+					<a href={resolve('/compare')} class="font-medium underline">Show latest</a>
+				</div>
+			{/if}
 			<div class="mb-4 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-semibold">

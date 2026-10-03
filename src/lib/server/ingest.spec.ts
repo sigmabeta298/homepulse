@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '$lib/server/db';
 import { room, round, armedRoom, settings } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { resolveRoomForReading } from './ingest';
+import { resolveRoomForCaptureRequest, resolveRoomForReading } from './ingest';
 import { ARM_WINDOW_MS, SETTINGS_ID } from './settings';
 
 // Clears the singleton/shared tables before each test so tests don't leak
@@ -43,6 +43,63 @@ describe('resolveRoomForReading - spot mode', () => {
 	it('returns null when nothing has been armed', async () => {
 		const result = await resolveRoomForReading({ mode: 'spot', continuousRoomId: null });
 		expect(result).toEqual({ roomId: null, roundId: null });
+	});
+
+	describe('resolveRoomForCaptureRequest', () => {
+		it('uses the room and round captured by the request, without consuming a newer arming', async () => {
+			const requestedRoom = await makeRoom('Kitchen');
+			const currentlyArmedRoom = await makeRoom('Office');
+			const [requestedRound] = await db.insert(round).values({}).returning();
+			const [currentRound] = await db.insert(round).values({}).returning();
+			const newerArmToken = 'newer-arm-token';
+
+			await db.insert(armedRoom).values({
+				id: SETTINGS_ID,
+				roomId: currentlyArmedRoom.id,
+				roundId: currentRound.id,
+				armToken: newerArmToken,
+				armedAt: new Date()
+			});
+
+			const result = await resolveRoomForCaptureRequest({
+				mode: 'spot',
+				roomId: requestedRoom.id,
+				roundId: requestedRound.id,
+				armToken: 'request-arm-token'
+			});
+
+			expect(result).toEqual({ roomId: requestedRoom.id, roundId: requestedRound.id });
+			const [arming] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
+			expect(arming).toMatchObject({
+				roomId: currentlyArmedRoom.id,
+				roundId: currentRound.id,
+				armToken: newerArmToken
+			});
+		});
+
+		it('consumes only the arming token carried by the completed request', async () => {
+			const requestedRoom = await makeRoom('Bedroom');
+			const [requestedRound] = await db.insert(round).values({}).returning();
+			const requestArmToken = 'request-arm-token';
+
+			await db.insert(armedRoom).values({
+				id: SETTINGS_ID,
+				roomId: requestedRoom.id,
+				roundId: requestedRound.id,
+				armToken: requestArmToken,
+				armedAt: new Date()
+			});
+
+			await resolveRoomForCaptureRequest({
+				mode: 'spot',
+				roomId: requestedRoom.id,
+				roundId: requestedRound.id,
+				armToken: requestArmToken
+			});
+
+			const [arming] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
+			expect(arming).toMatchObject({ roomId: null, roundId: null, armToken: null, armedAt: null });
+		});
 	});
 
 	it('returns the armed room and consumes the arming (one-time use)', async () => {

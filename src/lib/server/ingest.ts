@@ -1,10 +1,36 @@
 import { db } from '$lib/server/db';
 import { armedRoom } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { ARM_WINDOW_MS, SETTINGS_ID } from '$lib/server/settings';
-import type { Settings } from '$lib/server/db/schema';
+import type { CaptureRequest, Settings } from '$lib/server/db/schema';
 
 export type RoomResolution = { roomId: string | null; roundId: string | null };
+
+export async function resolveRoomForCaptureRequest(
+	request: Pick<CaptureRequest, 'mode' | 'roomId' | 'roundId' | 'armToken'>
+): Promise<RoomResolution> {
+	if (request.mode === 'continuous') {
+		return { roomId: request.roomId, roundId: null };
+	}
+
+	if (!request.roomId || !request.roundId || !request.armToken) {
+		throw new Error('Spot capture request is missing its room or walkthrough association.');
+	}
+
+	await db
+		.update(armedRoom)
+		.set({ roomId: null, roundId: null, armToken: null, armedAt: null })
+		.where(
+			and(
+				eq(armedRoom.id, SETTINGS_ID),
+				eq(armedRoom.roomId, request.roomId),
+				eq(armedRoom.roundId, request.roundId),
+				eq(armedRoom.armToken, request.armToken)
+			)
+		);
+
+	return { roomId: request.roomId, roundId: request.roundId };
+}
 
 // Decides which room (and, for spot mode, which walkthrough round) an
 // incoming reading belongs to, and - for spot mode - consumes the arming
@@ -34,7 +60,7 @@ export async function resolveRoomForReading(
 
 	await db
 		.update(armedRoom)
-		.set({ roomId: null, roundId: null, armedAt: null })
+		.set({ roomId: null, roundId: null, armToken: null, armedAt: null })
 		.where(eq(armedRoom.id, SETTINGS_ID));
 
 	return { roomId: armed.roomId, roundId: armed.roundId };

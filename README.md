@@ -190,7 +190,9 @@ room. The dashboard also provides **Capture now** for Continuous mode. The
 ESP32 checks for requests every 15 seconds. A Spot-check capture uses the
 currently armed room; a Continuous capture uses the room selected in
 Settings. Requests stay queued until the device sends a reading, so it must
-be powered on and connected to Wi-Fi.
+be powered on and connected to Wi-Fi. Spot captures keep the room and
+walkthrough selected at request time, even if the device receives the
+request after another room has been armed.
 
 ## Web application
 
@@ -272,8 +274,16 @@ Database commands are provided through Drizzle:
 npm run db:push
 npm run db:generate
 npm run db:migrate
+npm run db:baseline -- --confirm-host=<database-host>
 npm run db:studio
 ```
+
+`db:baseline` is a one-time recovery command for an existing database whose
+schema already matches migrations 0000–0002 but has no Drizzle migration
+history. It verifies the expected tables, columns, and indexes, then records
+that baseline and applies migration 0003 in one transaction. Use the hostname
+from the intended `DATABASE_URL` as the confirmation value. Do not use this
+command for a new or partially migrated database.
 
 Production room names and application settings are stored in the configured
 database, not on the ESP32 or in Vercel's filesystem. Vercel deployments
