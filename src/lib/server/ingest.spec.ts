@@ -79,10 +79,26 @@ describe('resolveRoomForReading - spot mode', () => {
 		});
 
 		const result = await resolveRoomForReading({ mode: 'spot', continuousRoomId: null });
-		expect(result).toEqual({ roomId: null, roundId: null });
+		expect(result).toEqual({ roomId: null, roundId: activeRound.id });
 	});
 
-	it('leaves a stale arming in place rather than clearing it (only fresh armings are consumed)', async () => {
+	it('accepts a room arming after a several-minute walk between rooms', async () => {
+		const bedroom = await makeRoom('Bedroom');
+		const [activeRound] = await db.insert(round).values({}).returning();
+		const armedAt = new Date(Date.now() - 5 * 60 * 1000);
+
+		await db.insert(armedRoom).values({
+			id: SETTINGS_ID,
+			roomId: bedroom.id,
+			roundId: activeRound.id,
+			armedAt
+		});
+
+		const result = await resolveRoomForReading({ mode: 'spot', continuousRoomId: null });
+		expect(result).toEqual({ roomId: bedroom.id, roundId: activeRound.id });
+	});
+
+	it('leaves a stale arming in place but does not assign its room', async () => {
 		const bedroom = await makeRoom('Bedroom');
 		const [activeRound] = await db.insert(round).values({}).returning();
 		const staleTimestamp = new Date(Date.now() - ARM_WINDOW_MS - 1000);
@@ -94,14 +110,13 @@ describe('resolveRoomForReading - spot mode', () => {
 			armedAt: staleTimestamp
 		});
 
-		await resolveRoomForReading({ mode: 'spot', continuousRoomId: null });
+		const result = await resolveRoomForReading({ mode: 'spot', continuousRoomId: null });
 
 		const [row] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
-		// This documents actual current behavior: a stale arming is ignored
-		// for tagging purposes but not actively cleared. Re-arming (via
-		// POST /api/arm) overwrites it before the next reading anyway, so
-		// this is harmless, but worth having a test pin the behavior down
-		// rather than leaving it implicit.
+		// The room is not guessed after expiry. Keeping the arming row also
+		// keeps the reading associated with the walkthrough for later manual
+		// assignment.
 		expect(row.roomId).toBe(bedroom.id);
+		expect(result).toEqual({ roomId: null, roundId: activeRound.id });
 	});
 });

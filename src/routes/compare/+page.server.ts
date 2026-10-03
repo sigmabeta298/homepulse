@@ -1,15 +1,23 @@
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { reading, room, round } from '$lib/server/db/schema';
+import { armedRoom, reading, room, round } from '$lib/server/db/schema';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
-import { getOrCreateSettings } from '$lib/server/settings';
+import { ARM_WINDOW_MS, getOrCreateSettings, SETTINGS_ID } from '$lib/server/settings';
 import { armRoomForSpotCheck, ArmError } from '$lib/server/arm';
 import { evaluateReading } from '$lib/server/environment-rules';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const settingsRow = await getOrCreateSettings();
 	const rooms = await db.select().from(room).orderBy(room.sortOrder);
+	const [arming] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
+	const armedAt = arming?.armedAt ? new Date(arming.armedAt).getTime() : null;
+	const armedRoomIsFresh = Boolean(
+		arming?.roomId && armedAt !== null && Date.now() - armedAt < ARM_WINDOW_MS
+	);
+	const activeArmedRoom = armedRoomIsFresh
+		? (rooms.find((candidate) => candidate.id === arming?.roomId) ?? null)
+		: null;
 
 	// Which round to show: an explicit ?round=<id>, or the most recent one.
 	const requestedRoundId = url.searchParams.get('round');
@@ -33,6 +41,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				.from(reading)
 				.leftJoin(room, eq(reading.roomId, room.id))
 				.where(eq(reading.roundId, targetRound.id))
+				.orderBy(desc(reading.recordedAt))
 		: [];
 
 	// One entry per room: its reading this round, or null if not measured yet.
@@ -68,6 +77,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	return {
 		mode: settingsRow.mode,
 		rooms,
+		activeArmedRoom,
 		targetRound,
 		roomSnapshots,
 		pastRounds,
@@ -85,7 +95,11 @@ export const actions: Actions = {
 
 		try {
 			const result = await armRoomForSpotCheck(roomId);
-			return { armed: true, armedRoomName: result.room.name };
+			return {
+				armed: true,
+				armedRoomId: result.room.id,
+				armedRoomName: result.room.name
+			};
 		} catch (e) {
 			if (e instanceof ArmError) return fail(e.status, { error: e.message });
 			throw e;

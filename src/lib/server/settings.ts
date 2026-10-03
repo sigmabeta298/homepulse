@@ -4,10 +4,10 @@ import { eq } from 'drizzle-orm';
 
 export const SETTINGS_ID = 'default';
 
-// How long an armed room stays valid before it's considered stale.
-// If you arm a room but don't press the capture button within this
-// window, the arming is ignored and the reading falls back to unassigned.
-export const ARM_WINDOW_MS = 2 * 60 * 1000;
+// Allow time to carry the device to the selected room and capture there.
+// If the arming expires, the reading stays in its walkthrough round but
+// is unassigned so it can be tagged manually rather than misattributed.
+export const ARM_WINDOW_MS = 15 * 60 * 1000;
 
 // How long a round can sit idle before it's considered finished and a
 // fresh spot-check walkthrough starts a new one.

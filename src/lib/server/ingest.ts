@@ -24,10 +24,12 @@ export async function resolveRoomForReading(
 	const [armed] = await db.select().from(armedRoom).where(eq(armedRoom.id, SETTINGS_ID));
 
 	const isFresh =
-		armed?.roomId && armed.armedAt && Date.now() - new Date(armed.armedAt).getTime() < ARM_WINDOW_MS;
+		armed?.roomId &&
+		armed.armedAt &&
+		Date.now() - new Date(armed.armedAt).getTime() < ARM_WINDOW_MS;
 
 	if (!isFresh) {
-		return { roomId: null, roundId: null };
+		return { roomId: null, roundId: armed?.roundId ?? null };
 	}
 
 	await db

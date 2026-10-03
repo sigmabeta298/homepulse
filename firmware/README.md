@@ -183,10 +183,13 @@ changing modes. The web app and ESP32 should be connected to the same
 deployment/database.
 
 - Choose **Spot-check** while walking the device room to room. Arm the
-  target room on Room Comparison, then press the button within two minutes.
+  target room on Room Comparison, then press the button within 15 minutes.
 - Choose **Continuous** once you park the device in one room. It sends
   automatically every `CONTINUOUS_INTERVAL_SECONDS`.
 
 `MODE` in local `config.py` is only a fallback for booting when the API
 cannot be reached; a successful API response overrides it. The button is
 a capture button in Spot-check mode, not a hardware mode switch.
+The PMS5003 streams frames continuously; a spot capture reads a valid frame
+when the button is pressed, with a 10-second timeout if no valid frame is
+available. Allow about 30 seconds after power-on for its fan to stabilize.

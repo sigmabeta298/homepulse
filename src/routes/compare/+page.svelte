@@ -1,8 +1,17 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
+	import { onMount } from 'svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+
+	onMount(() => {
+		const refreshTimer = setInterval(() => {
+			void invalidateAll();
+		}, 5000);
+		return () => clearInterval(refreshTimer);
+	});
 
 	function fmt(value: number | null | undefined, unit: string, digits = 1) {
 		if (value === null || value === undefined) return '—';
@@ -35,6 +44,8 @@
 	<p class="text-gray-600">
 		Walk the device room to room and compare how they look at roughly the same point in time. After
 		switching to Spot-check mode in Settings, the ESP32 applies it automatically within 15 seconds.
+		Room armings last 15 minutes, and readings refresh here automatically every five seconds. The
+		PMS5003 streams continuously; allow about 30 seconds after powering on for its fan to stabilize.
 	</p>
 
 	{#if data.mode !== 'spot'}
@@ -58,11 +69,12 @@
 			>
 				<div class="flex-1">
 					<label for="roomId" class="mb-1 block text-sm text-gray-700">
-						Arm for room, press the device button within two minutes, then refresh this page
+						Arm a room, carry the device there, and press its button within 15 minutes
 					</label>
 					<select
 						id="roomId"
 						name="roomId"
+						value={data.activeArmedRoom?.id ?? form?.armedRoomId ?? data.rooms[0]?.id ?? ''}
 						class="w-full rounded-lg border border-gray-300 p-2 focus:border-indigo-500 focus:ring-indigo-500"
 					>
 						{#each data.rooms as r (r.id)}
@@ -78,13 +90,12 @@
 				</button>
 			</form>
 
-			{#if form?.armed}
+			{#if data.activeArmedRoom}
 				<div class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-					Armed for <strong>{form.armedRoomName}</strong> — walk over and press the capture
-					button now.
+					Armed for <strong>{data.activeArmedRoom.name}</strong>. Carry the device there and press
+					the capture button within 15 minutes.
 				</div>
-			{/if}
-			{#if form?.error}
+			{:else if form?.error}
 				<div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
 					{form.error}
 				</div>
@@ -93,13 +104,22 @@
 
 		<div class="rounded-xl border border-gray-200 bg-white p-6 shadow-lg">
 			<div class="mb-4 flex items-center justify-between">
-				<h2 class="text-xl font-semibold">
-					{#if data.targetRound}
-						Walkthrough — {roundLabel(data.targetRound.startedAt)}
-					{:else}
-						No walkthrough yet
-					{/if}
-				</h2>
+				<div>
+					<h2 class="text-xl font-semibold">
+						{#if data.targetRound}
+							Walkthrough — {roundLabel(data.targetRound.startedAt)}
+						{:else}
+							No walkthrough yet
+						{/if}
+					</h2>
+					<p class="mt-1 text-xs text-gray-500">
+						{#if data.targetRound}
+							Latest readings appear automatically.
+						{:else}
+							Arm a room above and take your first reading to start a walkthrough.
+						{/if}
+					</p>
+				</div>
 
 				{#if data.pastRounds.length > 1}
 					<form method="GET" class="text-sm">
@@ -118,11 +138,7 @@
 				{/if}
 			</div>
 
-			{#if !data.targetRound}
-				<p class="text-gray-500">
-					Arm a room above and take your first reading to start a walkthrough.
-				</p>
-			{:else}
+			{#if data.targetRound}
 				<div class="overflow-x-auto">
 					<table class="w-full text-left text-sm">
 						<thead>
@@ -141,13 +157,21 @@
 								<tr class="border-b last:border-0">
 									<td class="py-2 font-medium">{snap.room.name}</td>
 									{#if snap.reading}
-										<td class="py-2 {isBreached(snap.suggestions, 'temperatureC') ? 'font-semibold text-red-600' : ''}">
+										<td
+											class="py-2 {isBreached(snap.suggestions, 'temperatureC')
+												? 'font-semibold text-red-600'
+												: ''}"
+										>
 											{fmt(snap.reading.temperatureC, '°C')}
 											{#if isBreached(snap.suggestions, 'temperatureC')}⚠{/if}
 										</td>
 										<td class="py-2">{fmt(snap.reading.humidityPct, '%')}</td>
 										<td class="py-2">{fmt(snap.reading.pm1UgM3, ' µg/m³')}</td>
-										<td class="py-2 {isBreached(snap.suggestions, 'pm25UgM3') ? 'font-semibold text-red-600' : ''}">
+										<td
+											class="py-2 {isBreached(snap.suggestions, 'pm25UgM3')
+												? 'font-semibold text-red-600'
+												: ''}"
+										>
 											{fmt(snap.reading.pm25UgM3, ' µg/m³')}
 											{#if isBreached(snap.suggestions, 'pm25UgM3')}⚠{/if}
 										</td>
@@ -169,7 +193,7 @@
 				<h2 class="mb-3 text-xl font-semibold text-amber-900">Suggestions</h2>
 				<ul class="space-y-2 text-sm text-amber-800">
 					{#each data.roomSnapshots as snap (snap.room.id)}
-						{#each snap.suggestions as s}
+						{#each snap.suggestions as s (s.metric)}
 							<li class="flex gap-2">
 								<span>💡</span>
 								<span>
@@ -186,8 +210,8 @@
 			<div class="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-lg">
 				<h2 class="mb-1 text-xl font-semibold text-amber-900">Unassigned Readings</h2>
 				<p class="mb-4 text-sm text-amber-700">
-					These readings arrived without an armed room (forgot to arm, or a double capture).
-					Tag them to a room, or leave them — they won't show up in any comparison until tagged.
+					These readings arrived without a valid room arming (for example, the arming expired or the
+					room was not armed). Tag them to a room, or leave them unassigned.
 				</p>
 				<ul class="space-y-2">
 					{#each data.unassigned as u (u.id)}

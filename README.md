@@ -178,7 +178,7 @@ Choose Spot-check mode in the web application's Settings page. The ESP32
 fetches the selected mode from the authenticated API every 15 seconds, so
 there is no need to copy firmware configuration when changing modes. In
 Spot-check mode, arm the target room in Room Comparison, then press the
-device button within two minutes. The firmware itself does not know which
+device button within 15 minutes. The firmware itself does not know which
 room it is in.
 
 ## Web application
